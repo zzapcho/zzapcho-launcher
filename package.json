@@ -1,0 +1,57 @@
+{
+  "name": "zzapcho-launcher",
+  "version": "1.0.0",
+  "description": "zzapcho Custom Minecraft Launcher",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:dir": "electron-builder --win --dir"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3",
+    "minecraft-launcher-core": "^3.18.2",
+    "msmc": "^5.0.5"
+  },
+  "devDependencies": {
+    "electron": "^41.1.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.zzapcho.launcher",
+    "productName": "zzapcho Launcher",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "zzapcho",
+      "repo": "zzapcho-launcher"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "launcher.config.json",
+      "src/**/*",
+      "lib/**/*",
+      "assets/**/*",
+      "node_modules/**/*"
+    ]
+  }
+}
