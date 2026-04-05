@@ -142,7 +142,20 @@ git push && git push --tags
 
 ---
 
-### 4단계 — GitHub Actions가 자동으로 빌드
+### 4단계 — GitHub Actions 권한 설정 (최초 1회만)
+
+> 처음 배포할 때 딱 한 번만 하면 됩니다. 이미 했으면 건너뛰세요.
+
+1. 👉 https://github.com/zzapcho/zzapcho-launcher/settings/actions 접속
+2. 아래로 스크롤 → **Workflow permissions** 섹션 찾기
+3. **Read and write permissions** 선택
+4. **Save** 클릭
+
+이 설정이 없으면 빌드는 되지만 Releases에 파일 업로드가 실패합니다.
+
+---
+
+### 5단계 — GitHub Actions가 자동으로 빌드
 
 👉 https://github.com/zzapcho/zzapcho-launcher/actions
 
@@ -150,13 +163,24 @@ git push && git push --tags
 
 - ⏳ 노란 원 = 빌드 중 (약 5~10분)
 - ✅ 초록 체크 = 빌드 완료
-- ❌ 빨간 X = 오류 발생 (클릭해서 확인)
+- ❌ 빨간 X = 오류 발생 (클릭해서 확인 → **Re-run all jobs** 로 재시도)
 
 빌드가 완료되면 👉 https://github.com/zzapcho/zzapcho-launcher/releases 에 새 버전이 올라옵니다.
 
 ---
 
-### 5단계 — 플레이어 자동 업데이트
+### 6단계 — 플레이어에게 첫 설치 파일 배포
+
+> 첫 번째 버전은 플레이어가 직접 다운받아 설치해야 합니다.
+> 이후 업데이트는 런처가 자동으로 처리합니다.
+
+1. 👉 https://github.com/zzapcho/zzapcho-launcher/releases 접속
+2. 최신 릴리즈에서 **`zzapcho Launcher Setup X.X.X.exe`** 파일 다운로드
+3. 플레이어에게 이 파일을 공유
+
+---
+
+### 7단계 — 플레이어 자동 업데이트
 
 빌드가 완료된 뒤 플레이어가 런처를 켜면:
 
@@ -166,13 +190,22 @@ git push && git push --tags
 
 ---
 
+## 🔄 업데이트 타이밍 정리
+
+| 무엇 | 언제 체크 | 어디서 가져옴 |
+|------|----------|--------------|
+| 모드 / 리소스팩 / 셰이더 | 플레이 버튼 누를 때마다 | `mcserver1` GitHub |
+| 런처 프로그램 자체 | 런처 켤 때 (2초 후 자동) | `zzapcho-launcher` GitHub Releases |
+
+---
+
 ## 📋 자주 쓰는 명령어 모음
 
 ```bash
 # 런처 개발 중 실행 (테스트)
 npm start
 
-# 최종 배포용 .exe 빌드 (로컬)
+# 최종 배포용 .exe 빌드 (로컬, 개발자 모드 필요)
 npm run build
 ```
 
@@ -182,7 +215,9 @@ npm run build
 
 | 증상 | 해결 방법 |
 |------|----------|
-| GitHub Actions 빌드 실패 | Actions 탭에서 빨간 X 클릭 → 오류 내용 확인 |
+| GitHub Actions 빌드 실패 | Actions 탭에서 빨간 X 클릭 → 오류 확인 → **Re-run all jobs** |
+| Actions에서 "Permission denied" | Settings → Actions → Workflow permissions → Read and write permissions |
 | 플레이어가 업데이트 안 됨 | package.json version이 올라갔는지 확인 |
 | 모드가 적용 안 됨 | mcserver1의 manifest.json이 업데이트됐는지 확인 |
 | 서버가 멀티플레이에 없음 | manifest.json의 servers 항목 IP 확인 |
+| 로컬 빌드 실패 (심볼릭 링크 오류) | Windows 설정 → 개발자용 → 개발자 모드 켜기 |
