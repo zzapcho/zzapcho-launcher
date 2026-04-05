@@ -27,12 +27,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
-      ],
-      "icon": "assets/icon.ico"
+      ]
     },
     "nsis": {
       "oneClick": true,
@@ -50,7 +47,6 @@
       "launcher.config.json",
       "src/**/*",
       "lib/**/*",
-      "assets/**/*",
       "node_modules/**/*"
     ]
   }
