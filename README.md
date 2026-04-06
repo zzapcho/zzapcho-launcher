@@ -109,84 +109,82 @@ mcserver1/
 
 ### 1단계 — 코드 수정
 
-`C:\Users\kdy20\Desktop\Claude\mrs-launcher` 폴더에서 원하는 파일 수정
+`C:\Users\kdy20\Desktop\Claude\mrs-launcher` 폴더에서 원하는 파일을 수정합니다.
 
 ---
 
-### 2단계 — `package.json`에서 버전 숫자 올리기
+### 2단계 — 버전 숫자 올리기
 
-`package.json` 파일을 열어서:
+`package.json` 파일을 메모장이나 VSCode로 열어서 맨 위쪽에 있는 버전 숫자를 올립니다.
 
 ```json
-"version": "1.0.0"
+"version": "1.0.1"   ← 이 숫자를 1.0.2, 1.0.3 이런식으로 올리면 됨
 ```
 
-숫자를 하나 올립니다 (예: `1.0.1`, `1.0.2`, `1.1.0`)
-
-> ⚠️ 버전을 올리지 않으면 플레이어 런처가 업데이트를 감지하지 못합니다!
+> ⚠️ 버전 숫자를 안 올리면 플레이어 런처가 업데이트가 생긴 줄 모릅니다!
 
 ---
 
-### 3단계 — 터미널에서 명령어 실행
+### 3단계 — 터미널 열기
 
-`mrs-launcher` 폴더에서 아래를 순서대로 실행:
+`mrs-launcher` 폴더 안에서 터미널을 엽니다.
 
-```bash
+> **방법:** `mrs-launcher` 폴더를 탐색기에서 열고 → 주소창 클릭 → `cmd` 입력 → 엔터
+
+---
+
+### 4단계 — 명령어 4줄 입력
+
+아래 명령어를 **위에서부터 순서대로** 하나씩 입력하고 엔터를 누릅니다.
+
+버전이 `1.0.2`라면:
+
+```
 git add .
-git commit -m "v1.0.1"
-git tag v1.0.1
+git commit -m "v1.0.2"
+git tag v1.0.2
 git push && git push --tags
 ```
 
-> `v1.0.1` 부분은 package.json에 적은 버전과 동일하게!
+> `v1.0.2` 부분은 package.json에 적은 버전 숫자와 똑같이 써야 합니다!
+
+각 명령어가 하는 일:
+- `git add .` → 수정한 파일 전부 선택
+- `git commit -m "..."` → 변경사항 저장
+- `git tag v1.0.2` → "이게 버전 1.0.2야" 라고 표시
+- `git push && git push --tags` → GitHub에 올리기
 
 ---
 
-### 4단계 — GitHub Actions 권한 설정 (최초 1회만)
+### 5단계 — GitHub가 알아서 빌드 (5~10분 기다리기)
 
-> 처음 배포할 때 딱 한 번만 하면 됩니다. 이미 했으면 건너뛰세요.
+명령어를 입력하면 GitHub가 자동으로 exe 파일을 만들어줍니다.
+진행 상황 보려면 👉 https://github.com/zzapcho/zzapcho-launcher/actions
 
-1. 👉 https://github.com/zzapcho/zzapcho-launcher/settings/actions 접속
-2. 아래로 스크롤 → **Workflow permissions** 섹션 찾기
-3. **Read and write permissions** 선택
-4. **Save** 클릭
-
-이 설정이 없으면 빌드는 되지만 Releases에 파일 업로드가 실패합니다.
+- 🟡 노란 원 = 지금 빌드 중
+- ✅ 초록 체크 = 완료! exe 파일이 Releases에 올라갔음
+- ❌ 빨간 X = 실패 (클릭 → **Re-run all jobs** 눌러서 다시 시도)
 
 ---
 
-### 5단계 — GitHub Actions가 자동으로 빌드
+### 6단계 — 설치 파일 받기 (첫 배포 때만)
 
-👉 https://github.com/zzapcho/zzapcho-launcher/actions
+> 처음 한 번만 플레이어가 직접 설치해야 합니다.
+> 그 다음부터는 런처가 켜질 때 혼자 알아서 업데이트됩니다.
 
-여기 들어가면 빌드 진행 상황이 보입니다.
+👉 https://github.com/zzapcho/zzapcho-launcher/releases
 
-- ⏳ 노란 원 = 빌드 중 (약 5~10분)
-- ✅ 초록 체크 = 빌드 완료
-- ❌ 빨간 X = 오류 발생 (클릭해서 확인 → **Re-run all jobs** 로 재시도)
-
-빌드가 완료되면 👉 https://github.com/zzapcho/zzapcho-launcher/releases 에 새 버전이 올라옵니다.
-
----
-
-### 6단계 — 플레이어에게 첫 설치 파일 배포
-
-> 첫 번째 버전은 플레이어가 직접 다운받아 설치해야 합니다.
-> 이후 업데이트는 런처가 자동으로 처리합니다.
-
-1. 👉 https://github.com/zzapcho/zzapcho-launcher/releases 접속
-2. 최신 릴리즈에서 **`zzapcho Launcher Setup X.X.X.exe`** 파일 다운로드
-3. 플레이어에게 이 파일을 공유
+여기서 `zzapcho Launcher Setup X.X.X.exe` 파일을 받아서 플레이어에게 공유하면 됩니다.
 
 ---
 
 ### 7단계 — 플레이어 자동 업데이트
 
-빌드가 완료된 뒤 플레이어가 런처를 켜면:
+플레이어가 런처를 켜면:
 
-1. 새 버전 감지 → 자동 다운로드 시작
+1. 새 버전이 있으면 자동으로 다운로드 시작
 2. 화면에 다운로드 진행률 표시
-3. 완료 후 자동 재시작 → 새 버전으로 업데이트 완료 ✅
+3. 완료되면 자동으로 재시작 → 새 버전으로 업데이트 완료 ✅
 
 ---
 
