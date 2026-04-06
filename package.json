@@ -1,6 +1,6 @@
 {
   "name": "zzapcho-launcher",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "zzapcho Custom Minecraft Launcher",
   "main": "main.js",
   "scripts": {
@@ -24,7 +24,7 @@
       "output": "dist"
     },
     "win": {
-      "icon": "build/favicon.ico",
+      "icon": "build/icon1.ico",
       "target": [
         {
           "target": "nsis",
