@@ -30,3 +30,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build -- --publish always
+        env:
+          EP_DRAFT: false
+          EP_PRE_RELEASE: false
