@@ -105,7 +105,11 @@ mcserver1/
 
 런처 디자인이나 기능을 바꾸고 싶을 때 사용합니다.
 
+방법은 두 가지입니다. 편한 걸로 쓰면 됩니다.
+
 ---
+
+## 💻 방법 1 — 명령어로 하기 (PC에서)
 
 ### 1단계 — 코드 수정
 
@@ -156,10 +160,36 @@ git push && git push --tags
 
 ---
 
-### 5단계 — GitHub가 알아서 빌드 (5~10분 기다리기)
+## 🌐 방법 2 — GitHub 사이트에서 하기
 
-명령어를 입력하면 GitHub가 자동으로 exe 파일을 만들어줍니다.
-진행 상황 보려면 👉 https://github.com/zzapcho/zzapcho-launcher/actions
+> PC가 없거나 터미널이 귀찮을 때 사용합니다.
+
+### 1단계 — package.json에서 버전 숫자 올리기
+
+1. 👉 https://github.com/zzapcho/zzapcho-launcher/blob/main/package.json 접속
+2. 오른쪽 위 ✏️ (연필 아이콘) 클릭
+3. 아래 부분에서 버전 숫자 수정:
+   ```json
+   "version": "1.0.3"   ← 숫자 올리기
+   ```
+4. 오른쪽 위 초록색 **Commit changes** 버튼 클릭
+5. 팝업 뜨면 그냥 **Commit changes** 클릭
+
+---
+
+### 2단계 — 새 릴리즈 만들기
+
+1. 👉 https://github.com/zzapcho/zzapcho-launcher/releases 접속
+2. 오른쪽 위 **Draft a new release** 클릭
+3. **Choose a tag** 클릭 → `v1.0.3` 입력 (버전 앞에 v 붙이기) → **Create new tag: v1.0.3 on publish** 클릭
+4. **Release title** 에 `v1.0.3` 입력
+5. 아래 **Publish release** 버튼 클릭 ← 꼭 이걸 눌러야 함! (Save draft 누르면 안 됨)
+
+---
+
+### 3단계 — 기다리기 (5~10분)
+
+👉 https://github.com/zzapcho/zzapcho-launcher/actions
 
 - 🟡 노란 원 = 지금 빌드 중
 - ✅ 초록 체크 = 완료! exe 파일이 Releases에 올라갔음
@@ -167,7 +197,7 @@ git push && git push --tags
 
 ---
 
-### 6단계 — 설치 파일 받기 (첫 배포 때만)
+## 📥 설치 파일 받기 (첫 배포 때만)
 
 > 처음 한 번만 플레이어가 직접 설치해야 합니다.
 > 그 다음부터는 런처가 켜질 때 혼자 알아서 업데이트됩니다.
@@ -178,7 +208,7 @@ git push && git push --tags
 
 ---
 
-### 7단계 — 플레이어 자동 업데이트
+## 🔁 플레이어 자동 업데이트
 
 플레이어가 런처를 켜면:
 
