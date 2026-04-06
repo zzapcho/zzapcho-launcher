@@ -24,7 +24,7 @@
       "output": "dist"
     },
     "win": {
-      "icon": "favicon.ico",
+      "icon": "build/favicon.ico",
       "target": [
         {
           "target": "nsis",
