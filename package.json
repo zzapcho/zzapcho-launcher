@@ -1,6 +1,6 @@
 {
   "name": "zzapcho-launcher",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "description": "zzapcho Custom Minecraft Launcher",
   "main": "main.js",
   "scripts": {
