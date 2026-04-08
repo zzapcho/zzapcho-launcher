@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('launcher', {
   // Settings
   getSettings: ()  => ipcRenderer.invoke('settings:get'),
   setSettings: (s) => ipcRenderer.invoke('settings:set', s),
+  getVersion:  ()  => ipcRenderer.invoke('app:version'),
 
   // Auto-updater events
   onUpdaterAvailable: (cb) => ipcRenderer.on('updater:available', (_, v) => cb(v)),

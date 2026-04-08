@@ -228,6 +228,18 @@ window.launcher.onGameLog(e => {
   appendLog(text);
 });
 
+let _logAtBottom = true;
+const _logScrollBtn = document.getElementById('log-scroll-btn');
+
+els.logBody.addEventListener('scroll', () => {
+  _logAtBottom = els.logBody.scrollHeight - els.logBody.scrollTop - els.logBody.clientHeight < 60;
+  _logScrollBtn?.classList.toggle('visible', !_logAtBottom);
+});
+
+_logScrollBtn?.addEventListener('click', () => {
+  els.logBody.scrollTop = els.logBody.scrollHeight;
+});
+
 function appendLog(text) {
   const line = document.createElement('div');
   line.className = 'log-line';
@@ -237,7 +249,7 @@ function appendLog(text) {
   else if (lower.includes('[info]')) line.classList.add('info');
   line.textContent = text;
   els.logBody.appendChild(line);
-  els.logBody.scrollTop = els.logBody.scrollHeight;
+  if (_logAtBottom) els.logBody.scrollTop = els.logBody.scrollHeight;
 }
 
 function updateModloaderBadge(ml) {
@@ -477,6 +489,12 @@ async function loadSettings() {
   els.settingWidth.value      = s.resolution?.width || 1280;
   els.settingHeight.value     = s.resolution?.height || 720;
   els.settingJava.value       = s.javaPath || '';
+
+  const verEl = document.getElementById('launcher-version');
+  if (verEl) {
+    const v = await window.launcher.getVersion();
+    verEl.textContent = `런처 버전 v${v}`;
+  }
 }
 
 els.settingRamMin.addEventListener('input', () => {

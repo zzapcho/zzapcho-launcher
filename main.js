@@ -611,6 +611,7 @@ ipcMain.handle('folder:open-game', async () => {
 
 // ─── Settings ────────────────────────────────────────────────
 
+ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('settings:get', () => ({ ...DEFAULT_SETTINGS, ...readJson(SETTINGS_FILE, {}) }));
 ipcMain.handle('settings:set', (_, s) => {
   const existing = readJson(SETTINGS_FILE, {});
