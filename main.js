@@ -324,10 +324,12 @@ ipcMain.handle('setup:run', async (_, manifest) => {
     }
 
     // ── 4. 서버 목록 ─────────────────────────────────────────
+    // manifest 서버는 항상 최신으로, 사용자 추가 서버는 유지
     const serverSource = manifest || localManifest;
-    if (serverSource?.servers?.length > 0) {
+    if (serverSource?.servers !== undefined) {
       sendSetupProgress('서버 목록 설정 중...', 92);
-      writeServersDat(GAME_PATH, serverSource.servers);
+      // 이전 manifest 서버도 넘겨서 교체 시 깔끔하게 제거
+      writeServersDat(GAME_PATH, serverSource.servers || [], localManifest?.servers || []);
     }
 
     sendSetupProgress('준비 완료!', 100);
@@ -381,7 +383,8 @@ ipcMain.handle('game:launch', async () => {
 
     const { writeServersDat: wsd } = require('./lib/servers');
     const mf = localManifest;
-    if (mf?.servers?.length > 0) wsd(GAME_PATH, mf.servers);
+    // 게임 실행 직전 — manifest 서버 유지하되 사용자 추가 서버 보존
+    if (mf?.servers !== undefined) wsd(GAME_PATH, mf.servers || [], mf.servers || []);
 
     const gameVersion = localManifest?.gameVersion || '1.21.1';
     const modloader = require('./lib/modloader');
