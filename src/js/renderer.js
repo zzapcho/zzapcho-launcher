@@ -368,6 +368,54 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
   });
 });
 
+// ─── Server Status ────────────────────────────────────────────
+
+const _tooltip = document.createElement('div');
+_tooltip.className = 'player-tooltip';
+_tooltip.style.display = 'none';
+document.body.appendChild(_tooltip);
+
+async function refreshServerStatus() {
+  const wrap = document.getElementById('server-status-wrap');
+  const list = document.getElementById('server-list-status');
+  if (!wrap || !list) return;
+  let result;
+  try { result = await window.launcher.getServerStatus(); } catch { return; }
+  const servers = result.servers || [];
+  if (servers.length === 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  list.innerHTML = servers.map(s => {
+    const isOnline = s.online;
+    const playerStr = isOnline ? `${s.online_count}/${s.max_count}명` : '오프라인';
+    const names = (s.sample || []).join('\n');
+    return `<div class="server-card ${isOnline ? 'online' : 'offline'}">
+      <span class="server-dot ${isOnline ? 'online' : 'offline'}"></span>
+      <span class="server-card-name">${s.name || s.ip}</span>
+      <span class="server-players ${isOnline && s.online_count > 0 ? 'has-players' : ''}" data-players="${names}">${playerStr}</span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.server-players[data-players]').forEach(el => {
+    el.addEventListener('mouseenter', e => {
+      const names = e.currentTarget.dataset.players?.trim();
+      if (!names) return;
+      _tooltip.innerHTML = names.split('\n').filter(n => n).map(n => `<div class="tooltip-player">${n}</div>`).join('') || '<div class="tooltip-player" style="color:#666">없음</div>';
+      _tooltip.style.display = 'block';
+      _positionTooltip(e);
+    });
+    el.addEventListener('mousemove', _positionTooltip);
+    el.addEventListener('mouseleave', () => { _tooltip.style.display = 'none'; });
+  });
+}
+
+function _positionTooltip(e) {
+  const tw = _tooltip.offsetWidth, th = _tooltip.offsetHeight;
+  let x = e.clientX + 12, y = e.clientY - th - 8;
+  if (x + tw > window.innerWidth) x = e.clientX - tw - 8;
+  if (y < 0) y = e.clientY + 16;
+  _tooltip.style.left = x + 'px';
+  _tooltip.style.top  = y + 'px';
+}
+
 // ─── Preset Selector ──────────────────────────────────────────
 
 function initPresetDropdown() {
@@ -414,6 +462,7 @@ async function loadPresets() {
       );
       // setSettings 호출 제거 — setup:run 내부에서 selectedPreset 저장
       await runSetup();
+      refreshServerStatus();
     });
     list.appendChild(opt);
   }
@@ -548,43 +597,54 @@ async function loadEasyVersions(resultEl, projectId) {
   }
 
   versionsEl.innerHTML = '';
-  for (const ver of r.versions.slice(0, 10)) {
+  for (const ver of r.versions) {
     const primaryFile = ver.files?.find(f => f.primary) || ver.files?.[0];
     if (!primaryFile) continue;
 
     const row = document.createElement('div');
     row.className = 'easy-ver-row';
-    row.innerHTML = `
-      <span class="easy-ver-name">${ver.name || ver.version_number}</span>
-      <button class="easy-ver-install" data-url="${primaryFile.url}" data-filename="${primaryFile.filename}">설치</button>
-    `;
-    row.querySelector('.easy-ver-install').addEventListener('click', async (e) => {
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'easy-ver-name';
+    const gv = ver.game_versions?.slice(-1)[0] || '';
+    nameSpan.textContent = (ver.name || ver.version_number) + (gv ? `  [${gv}]` : '');
+
+    const installBtn = document.createElement('button');
+    installBtn.className = 'easy-ver-install';
+    installBtn.textContent = '설치';
+
+    installBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const btn = e.currentTarget;
-      btn.disabled = true;
-      btn.textContent = '설치 중...';
+      installBtn.disabled = true;
+      installBtn.textContent = '설치 중...';
       const res = await window.launcher.modrinthDownload({
-        url: btn.dataset.url,
-        filename: btn.dataset.filename,
+        url: primaryFile.url,
+        filename: primaryFile.filename,
         category: _easyCategory
       });
       if (res.success) {
-        btn.textContent = '완료 ✓';
-        showToast(`${btn.dataset.filename} 설치됨`, 'success');
+        installBtn.textContent = '완료 ✓';
+        showToast(`${primaryFile.filename} 설치됨`, 'success');
         loadFilePage(_easyCategory);
       } else {
-        btn.disabled = false;
-        btn.textContent = '설치';
+        installBtn.disabled = false;
+        installBtn.textContent = '설치';
         showToast('설치 실패: ' + res.error, 'error');
       }
     });
+
+    row.appendChild(nameSpan);
+    row.appendChild(installBtn);
     versionsEl.appendChild(row);
   }
 }
 
 // ─── Navigation ───────────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => showPage(btn.dataset.view));
+  btn.addEventListener('click', () => {
+    showPage(btn.dataset.view);
+    if (btn.dataset.view === 'home') refreshServerStatus();
+  });
 });
 
 // ─── Settings ─────────────────────────────────────────────────
@@ -647,6 +707,8 @@ async function init() {
   if (auth.loggedIn) {
     setProfile(auth.name, auth.uuid);
     await runSetup();
+    refreshServerStatus();
+    setInterval(refreshServerStatus, 30000);
   }
 }
 

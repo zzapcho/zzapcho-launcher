@@ -594,6 +594,41 @@ body {
   to { transform: translateY(16px); opacity: 0; }
 }
 
+/* ========== Server Status ========== */
+.server-status-wrap { width: 240px; display: flex; flex-direction: column; gap: 6px; }
+
+.server-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.server-card.online  { border-color: rgba(87, 242, 135, 0.15); }
+.server-card.offline { opacity: 0.6; }
+
+.server-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.server-dot.online  { background: var(--green); box-shadow: 0 0 6px rgba(87,242,135,0.6); }
+.server-dot.offline { background: var(--text-muted); }
+
+.server-card-name { flex: 1; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.server-players { font-weight: 700; color: var(--text-muted); flex-shrink: 0; cursor: default; font-size: 11px; }
+.server-players.has-players { color: var(--green); }
+
+.player-tooltip {
+  position: fixed; z-index: 999;
+  background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; padding: 6px 10px;
+  font-size: 12px; color: var(--text-secondary);
+  pointer-events: none; min-width: 80px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.tooltip-player { padding: 2px 0; }
+
 /* ========== Modloader Badge ========== */
 .modloader-badge {
   font-size: 11px;
@@ -803,8 +838,8 @@ body {
 
 /* ========== Browse Easy Button ========== */
 .btn-browse-easy {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg-tertiary);

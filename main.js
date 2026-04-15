@@ -523,19 +523,24 @@ ipcMain.handle('modrinth:search', async (_, { query, category, gameVersion, load
 });
 
 ipcMain.handle('modrinth:versions', async (_, { projectId, gameVersion, loader, category }) => {
-  try {
+  const UA = { 'User-Agent': 'zzapcho-launcher/1.0 (github.com/zzapcho/zzapcho-launcher)' };
+  const fetchVersions = async (filtered) => {
     const params = new URLSearchParams();
-    if (gameVersion) params.set('game_versions', JSON.stringify([gameVersion]));
-    if (loader && loader !== 'vanilla' && category === 'mods') {
+    if (filtered && gameVersion) params.set('game_versions', JSON.stringify([gameVersion]));
+    if (filtered && loader && loader !== 'vanilla' && category === 'mods') {
       params.set('loaders', JSON.stringify([loader]));
     }
     const qs = params.toString();
     const url = `https://api.modrinth.com/v2/project/${projectId}/version${qs ? '?' + qs : ''}`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'zzapcho-launcher/1.0 (github.com/zzapcho/zzapcho-launcher)' }
-    });
+    const res = await fetch(url, { headers: UA });
     const data = await res.json();
-    return { success: true, versions: Array.isArray(data) ? data : [] };
+    return Array.isArray(data) ? data : [];
+  };
+  try {
+    // 먼저 버전+로더 필터로 시도, 결과 없으면 필터 없이 전체 조회
+    let versions = await fetchVersions(true);
+    if (versions.length === 0) versions = await fetchVersions(false);
+    return { success: true, versions: versions.slice(0, 15) };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -566,6 +571,55 @@ ipcMain.handle('modrinth:download', async (_, { url, filename, category }) => {
   } catch (e) {
     return { success: false, error: e.message };
   }
+});
+
+// ─── Server Status Ping (Minecraft SLP) ──────────────────────
+
+function pingMinecraftServer(host, port) {
+  port = port || 25565;
+  return new Promise((resolve) => {
+    const socket = require('net').createConnection({ host, port });
+    let buf = Buffer.alloc(0), settled = false;
+    const finish = (r) => { if (settled) return; settled = true; socket.destroy(); resolve(r); };
+    socket.setTimeout(4000);
+    socket.on('timeout', () => finish({ online: false }));
+    socket.on('error',   () => finish({ online: false }));
+    socket.on('connect', () => {
+      const vi = (n) => { const b = []; do { let x = n & 0x7f; n >>>= 7; if (n) x |= 0x80; b.push(x); } while (n); return Buffer.from(b); };
+      const str = (s) => { const b = Buffer.from(s, 'utf8'); return Buffer.concat([vi(b.length), b]); };
+      const pkt = (id, ...d) => { const body = Buffer.concat([vi(id), ...d]); return Buffer.concat([vi(body.length), body]); };
+      const portBuf = Buffer.allocUnsafe(2); portBuf.writeUInt16BE(port);
+      socket.write(Buffer.concat([pkt(0x00, vi(0), str(host), portBuf, vi(1)), pkt(0x00)]));
+    });
+    socket.on('data', chunk => {
+      buf = Buffer.concat([buf, chunk]);
+      try {
+        let o = 0;
+        const rv = () => { let v = 0, s = 0, b; do { b = buf[o++]; v |= (b & 0x7f) << s; s += 7; } while (b & 0x80); return v; };
+        rv(); rv();
+        const sLen = rv();
+        const json = JSON.parse(buf.slice(o, o + sLen).toString('utf8'));
+        finish({ online: true, online_count: json.players?.online ?? 0, max_count: json.players?.max ?? 0, sample: (json.players?.sample || []).map(p => p.name) });
+      } catch {}
+    });
+  });
+}
+
+ipcMain.handle('server:status', async () => {
+  const settings = readJson(SETTINGS_FILE, DEFAULT_SETTINGS);
+  const presetId = settings.selectedPreset || CONFIG.presets?.[0]?.id;
+  const manifest = readJson(getManifestCacheFile(presetId), null);
+  const servers = manifest?.servers;
+  if (!servers?.length) return { servers: [] };
+  const results = await Promise.all(servers.map(async s => {
+    const addr = s.ip || '';
+    const colonIdx = addr.lastIndexOf(':');
+    let host = addr, port = s.port || 25565;
+    if (colonIdx > 0) { const p = parseInt(addr.slice(colonIdx + 1)); if (!isNaN(p)) { host = addr.slice(0, colonIdx); port = p; } }
+    const status = await pingMinecraftServer(host, port);
+    return { name: s.name, ip: addr, ...status };
+  }));
+  return { servers: results };
 });
 
 // ─── Game Folder ─────────────────────────────────────────────
