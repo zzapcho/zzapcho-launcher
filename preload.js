@@ -29,7 +29,11 @@ contextBridge.exposeInMainWorld('launcher', {
   removeFile:     (category, fileName)   => ipcRenderer.invoke('files:remove', category, fileName),
   openFileDialog: (category)             => ipcRenderer.invoke('files:open-dialog', category),
   openGameFolder: ()                     => ipcRenderer.invoke('folder:open-game'),
-  getServerStatus: ()                    => ipcRenderer.invoke('server:status'),
+
+  // Modrinth Browser
+  modrinthSearch:   (p) => ipcRenderer.invoke('modrinth:search', p),
+  modrinthVersions: (p) => ipcRenderer.invoke('modrinth:versions', p),
+  modrinthDownload: (p) => ipcRenderer.invoke('modrinth:download', p),
 
   // Settings
   getSettings: ()  => ipcRenderer.invoke('settings:get'),

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://mc-heads.net; style-src 'self' 'unsafe-inline';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://mc-heads.net https://cdn.modrinth.com; style-src 'self' 'unsafe-inline';">
   <title>zzapcho Launcher</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -119,11 +119,6 @@
             <p class="progress-text" id="progress-text">준비 중...</p>
           </div>
 
-          <!-- 서버 상태 -->
-          <div class="server-status-wrap" id="server-status-wrap" style="display:none;">
-            <div id="server-list-status"></div>
-          </div>
-
           <!-- 프리셋 선택 -->
           <div class="preset-selector-wrap">
             <div class="preset-dropdown" id="preset-dropdown">
@@ -141,7 +136,12 @@
       <div id="page-mods" class="page">
         <div class="page-header">
           <h2>모드</h2>
-          <button class="btn btn-primary btn-sm btn-add-file" data-category="mods">+ 파일 추가</button>
+          <div class="page-header-actions">
+            <button class="btn-browse-easy" data-category="mods" style="display:none;" title="Modrinth 브라우저">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 015 5v1h1a2 2 0 010 4H2a2 2 0 010-4h1V6a5 5 0 015-5zm0 1.5A3.5 3.5 0 004.5 6v2.5h7V6A3.5 3.5 0 008 2.5zm0 6l2.5 2.5h-5L8 8.5z"/><path d="M5.5 11h5v1.5h-5z"/></svg>
+            </button>
+            <button class="btn btn-primary btn-sm btn-add-file" data-category="mods">+ 파일 추가</button>
+          </div>
         </div>
         <div class="drop-zone" data-category="mods">
           <div class="drop-zone-text">📦 .jar 파일을 여기에 드래그하세요</div>
@@ -160,7 +160,12 @@
       <div id="page-resourcepacks" class="page">
         <div class="page-header">
           <h2>리소스팩</h2>
-          <button class="btn btn-primary btn-sm btn-add-file" data-category="resourcepacks">+ 파일 추가</button>
+          <div class="page-header-actions">
+            <button class="btn-browse-easy" data-category="resourcepacks" style="display:none;" title="Modrinth 브라우저">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 015 5v1h1a2 2 0 010 4H2a2 2 0 010-4h1V6a5 5 0 015-5zm0 1.5A3.5 3.5 0 004.5 6v2.5h7V6A3.5 3.5 0 008 2.5zm0 6l2.5 2.5h-5L8 8.5z"/><path d="M5.5 11h5v1.5h-5z"/></svg>
+            </button>
+            <button class="btn btn-primary btn-sm btn-add-file" data-category="resourcepacks">+ 파일 추가</button>
+          </div>
         </div>
         <div class="drop-zone" data-category="resourcepacks">
           <div class="drop-zone-text">🎨 .zip 파일을 여기에 드래그하세요</div>
@@ -179,7 +184,12 @@
       <div id="page-shaderpacks" class="page">
         <div class="page-header">
           <h2>셰이더</h2>
-          <button class="btn btn-primary btn-sm btn-add-file" data-category="shaderpacks">+ 파일 추가</button>
+          <div class="page-header-actions">
+            <button class="btn-browse-easy" data-category="shaderpacks" style="display:none;" title="Modrinth 브라우저">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 015 5v1h1a2 2 0 010 4H2a2 2 0 010-4h1V6a5 5 0 015-5zm0 1.5A3.5 3.5 0 004.5 6v2.5h7V6A3.5 3.5 0 008 2.5zm0 6l2.5 2.5h-5L8 8.5z"/><path d="M5.5 11h5v1.5h-5z"/></svg>
+            </button>
+            <button class="btn btn-primary btn-sm btn-add-file" data-category="shaderpacks">+ 파일 추가</button>
+          </div>
         </div>
         <div class="drop-zone" data-category="shaderpacks">
           <div class="drop-zone-text">✨ .zip / .jar 파일을 여기에 드래그하세요</div>
@@ -268,6 +278,23 @@
         <div class="progress-fill" id="update-progress-fill" style="width:0%"></div>
       </div>
       <p id="update-status" class="update-status">준비 중...</p>
+    </div>
+  </div>
+
+  <!-- Modrinth Browser Modal -->
+  <div id="easy-overlay" class="easy-overlay" style="display:none;">
+    <div class="easy-modal">
+      <div class="easy-header">
+        <span class="easy-title" id="easy-modal-title">브라우저</span>
+        <button class="easy-close" id="easy-close">✕</button>
+      </div>
+      <div class="easy-search-wrap">
+        <svg class="easy-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 10-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 001.415-1.414l-3.85-3.85a1.007 1.007 0 00-.115-.099zm-5.242 1.156a5.5 5.5 0 110-11 5.5 5.5 0 010 11z"/></svg>
+        <input class="easy-search" id="easy-search" type="text" placeholder="검색...">
+      </div>
+      <div class="easy-body" id="easy-body">
+        <div class="easy-placeholder">검색어를 입력하세요</div>
+      </div>
     </div>
   </div>
 

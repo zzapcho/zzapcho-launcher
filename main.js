@@ -215,7 +215,6 @@ ipcMain.handle('presets:list', () => CONFIG.presets || []);
 ipcMain.handle('setup:run', async (_, manifest) => {
   const { detectJava, downloadJava } = require('./lib/java');
   const modloader = require('./lib/modloader');
-  const { writeServersDat } = require('./lib/servers');
 
   const presetId = manifest?._presetId;
   const MANIFEST_CACHE = getManifestCacheFile(presetId || 'default');
@@ -223,14 +222,10 @@ ipcMain.handle('setup:run', async (_, manifest) => {
   const settings = readJson(SETTINGS_FILE, DEFAULT_SETTINGS);
   const previousPresetId = settings.selectedPreset;
 
-  // 이전 프리셋 서버 목록 — 프리셋 전환 시 servers.dat 병합에 사용
-  let prevManifestServers = [];
-
   // 프리셋 전환 처리
   if (presetId && previousPresetId && presetId !== previousPresetId) {
     // 1. 현재 사용자 파일을 이전 프리셋 스태시에 저장
     const oldManifest = readJson(getManifestCacheFile(previousPresetId), null);
-    prevManifestServers = oldManifest?.servers || []; // 캐시 삭제 전에 저장
     stashUserFiles(previousPresetId, oldManifest);
 
     // 2. mods/resourcepacks/shaderpacks 전체 초기화
@@ -327,19 +322,6 @@ ipcMain.handle('setup:run', async (_, manifest) => {
       writeJson(MANIFEST_CACHE, manifest);
     }
 
-    // ── 4. 서버 목록 ─────────────────────────────────────────
-    // manifest 서버 상단 고정 + 사용자 추가 서버 유지
-    // prevManifestServers: 프리셋 전환 시 이전 프리셋 서버 (캐시 삭제 전 저장)
-    //                      동일 프리셋 업데이트 시엔 localManifest.servers 사용
-    const serverSource = manifest || localManifest;
-    if (serverSource) {
-      sendSetupProgress('서버 목록 설정 중...', 92);
-      const prev = prevManifestServers.length > 0
-        ? prevManifestServers
-        : (localManifest?.servers || []);
-      writeServersDat(GAME_PATH, serverSource.servers || [], prev);
-    }
-
     sendSetupProgress('준비 완료!', 100);
     return { success: true, javaPath, versionId, gameVersion };
   } catch (e) {
@@ -388,11 +370,6 @@ ipcMain.handle('game:launch', async () => {
     launcher.on('download-status', e => mainWindow?.webContents.send('game:download-status', e));
     launcher.on('close', code => mainWindow?.webContents.send('game:closed', code));
     launcher.on('data', e => mainWindow?.webContents.send('game:log', e));
-
-    const { writeServersDat: wsd } = require('./lib/servers');
-    const mf = localManifest;
-    // 게임 실행 직전 — manifest 서버 유지하되 사용자 추가 서버 보존
-    if (mf?.servers !== undefined) wsd(GAME_PATH, mf.servers || [], mf.servers || []);
 
     const gameVersion = localManifest?.gameVersion || '1.21.1';
     const modloader = require('./lib/modloader');
@@ -522,83 +499,73 @@ ipcMain.handle('files:open-dialog', async (_, category) => {
   return result.canceled ? [] : result.filePaths;
 });
 
-// ─── Server Status Ping (Minecraft SLP) ──────────────────────
+// ─── Modrinth Browser ────────────────────────────────────────
 
-function pingMinecraftServer(host, port) {
-  port = port || 25565;
-  return new Promise((resolve) => {
-    const socket = require('net').createConnection({ host, port });
-    let buf = Buffer.alloc(0);
-    let settled = false;
-
-    const finish = (r) => {
-      if (settled) return;
-      settled = true;
-      socket.destroy();
-      resolve(r);
-    };
-
-    socket.setTimeout(5000);
-    socket.on('timeout', () => finish({ online: false }));
-    socket.on('error',   () => finish({ online: false }));
-
-    socket.on('connect', () => {
-      const vi = (n) => {
-        const b = [];
-        do { let x = n & 0x7f; n >>>= 7; if (n) x |= 0x80; b.push(x); } while (n);
-        return Buffer.from(b);
-      };
-      const str = (s) => { const b = Buffer.from(s, 'utf8'); return Buffer.concat([vi(b.length), b]); };
-      const pkt = (id, ...d) => { const body = Buffer.concat([vi(id), ...d]); return Buffer.concat([vi(body.length), body]); };
-      const portBuf = Buffer.allocUnsafe(2); portBuf.writeUInt16BE(port);
-
-      socket.write(Buffer.concat([
-        pkt(0x00, vi(0), str(host), portBuf, vi(1)),
-        pkt(0x00)
-      ]));
-    });
-
-    socket.on('data', chunk => {
-      buf = Buffer.concat([buf, chunk]);
-      try {
-        let o = 0;
-        const rv = () => { let v = 0, s = 0, b; do { b = buf[o++]; v |= (b & 0x7f) << s; s += 7; } while (b & 0x80); return v; };
-        const pktLen = rv();
-        if (buf.length < o + pktLen) return;
-        rv();
-        const sLen = rv();
-        const json = JSON.parse(buf.slice(o, o + sLen).toString('utf8'));
-        finish({
-          online:        true,
-          online_count:  json.players?.online  ?? 0,
-          max_count:     json.players?.max     ?? 0,
-          sample:       (json.players?.sample || []).map(p => p.name)
-        });
-      } catch {}
-    });
+ipcMain.handle('modrinth:search', async (_, { query, category, gameVersion, loader }) => {
+  const typeMap = { mods: 'mod', resourcepacks: 'resourcepack', shaderpacks: 'shader' };
+  const projectType = typeMap[category] || 'mod';
+  const facetGroups = [[`project_type:${projectType}`]];
+  if (gameVersion) facetGroups.push([`versions:${gameVersion}`]);
+  const params = new URLSearchParams({
+    query: query || '',
+    facets: JSON.stringify(facetGroups),
+    limit: '20'
   });
-}
+  try {
+    const res = await fetch(`https://api.modrinth.com/v2/search?${params}`, {
+      headers: { 'User-Agent': 'zzapcho-launcher/1.0 (github.com/zzapcho/zzapcho-launcher)' }
+    });
+    const data = await res.json();
+    return { success: true, hits: data.hits || [] };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
 
-ipcMain.handle('server:status', async () => {
-  const settings = readJson(SETTINGS_FILE, DEFAULT_SETTINGS);
-  const presetId = settings.selectedPreset || CONFIG.presets?.[0]?.id;
-  const manifest = readJson(getManifestCacheFile(presetId), null);
-  const servers = manifest?.servers;
-  if (!servers?.length) return { servers: [] };
-
-  const results = await Promise.all(servers.map(async s => {
-    const addr = s.ip || '';
-    const colonIdx = addr.lastIndexOf(':');
-    let host = addr, port = s.port || 25565;
-    if (colonIdx > 0) {
-      const p = parseInt(addr.slice(colonIdx + 1));
-      if (!isNaN(p)) { host = addr.slice(0, colonIdx); port = p; }
+ipcMain.handle('modrinth:versions', async (_, { projectId, gameVersion, loader, category }) => {
+  try {
+    const params = new URLSearchParams();
+    if (gameVersion) params.set('game_versions', JSON.stringify([gameVersion]));
+    if (loader && loader !== 'vanilla' && category === 'mods') {
+      params.set('loaders', JSON.stringify([loader]));
     }
-    const status = await pingMinecraftServer(host, port);
-    return { name: s.name, ip: addr, ...status };
-  }));
+    const qs = params.toString();
+    const url = `https://api.modrinth.com/v2/project/${projectId}/version${qs ? '?' + qs : ''}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'zzapcho-launcher/1.0 (github.com/zzapcho/zzapcho-launcher)' }
+    });
+    const data = await res.json();
+    return { success: true, versions: Array.isArray(data) ? data : [] };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
 
-  return { servers: results };
+ipcMain.handle('modrinth:download', async (_, { url, filename, category }) => {
+  if (!VALID_FILE_CATS.includes(category)) return { success: false, error: '잘못된 카테고리' };
+  const safeName = path.basename(filename);
+  if (!safeName || safeName.includes('..')) return { success: false, error: '잘못된 파일명' };
+  try {
+    const settings = readJson(SETTINGS_FILE, DEFAULT_SETTINGS);
+    const presetId = settings.selectedPreset || CONFIG.presets?.[0]?.id;
+    const destDir = path.join(GAME_PATH, category);
+    const stashDir = getUserStashDir(presetId, category);
+    fs.mkdirSync(destDir, { recursive: true });
+    fs.mkdirSync(stashDir, { recursive: true });
+    const destPath = path.join(destDir, safeName);
+    const stashPath = path.join(stashDir, safeName);
+    // Download via fetch
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'zzapcho-launcher/1.0 (github.com/zzapcho/zzapcho-launcher)' }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    fs.writeFileSync(destPath, buf);
+    fs.copyFileSync(destPath, stashPath);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 });
 
 // ─── Game Folder ─────────────────────────────────────────────

@@ -44,6 +44,11 @@ const els = {
 
 // 현재 선택된 프리셋 ID
 let currentPresetId = null;
+// 현재 게임 버전 / 모드로더 (Modrinth 필터용)
+let currentGameVersion = '1.21.1';
+let currentModLoader = 'vanilla';
+// easy 기능이 활성화된 프리셋 ID 목록
+let _easyPresets = new Set();
 
 // ─── View helpers ─────────────────────────────────────────────
 function showView(name) {
@@ -125,7 +130,9 @@ async function runSetup() {
     const check = await window.launcher.checkUpdate(currentPresetId);
     if (check.manifest) {
       manifest = check.manifest;
-      els.gameVersion.textContent = manifest.gameVersion || '1.21.1';
+      currentGameVersion = manifest.gameVersion || '1.21.1';
+      currentModLoader = (manifest.modLoader?.type || 'vanilla').toLowerCase();
+      els.gameVersion.textContent = currentGameVersion;
       updateModloaderBadge(manifest.modLoader);
     }
   } catch {}
@@ -171,7 +178,9 @@ els.playBtn.addEventListener('click', async () => {
     const check = await window.launcher.checkUpdate(currentPresetId);
     if (check.manifest) {
       manifest = check.manifest;
-      els.gameVersion.textContent = manifest.gameVersion || '1.21.1';
+      currentGameVersion = manifest.gameVersion || '1.21.1';
+      currentModLoader = (manifest.modLoader?.type || 'vanilla').toLowerCase();
+      els.gameVersion.textContent = currentGameVersion;
       updateModloaderBadge(manifest.modLoader);
     }
   } catch {}
@@ -361,63 +370,6 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
   });
 });
 
-// ─── Server Status ────────────────────────────────────────────
-
-const _tooltip = document.createElement('div');
-_tooltip.className = 'player-tooltip';
-_tooltip.style.display = 'none';
-document.body.appendChild(_tooltip);
-
-async function refreshServerStatus() {
-  const wrap = document.getElementById('server-status-wrap');
-  const list = document.getElementById('server-list-status');
-  if (!wrap || !list) return;
-
-  let result;
-  try { result = await window.launcher.getServerStatus(); }
-  catch { return; }
-
-  const servers = result.servers || [];
-  if (servers.length === 0) { wrap.style.display = 'none'; return; }
-
-  wrap.style.display = '';
-  list.innerHTML = servers.map(s => {
-    const isOnline = s.online;
-    const playerStr = isOnline ? `${s.online_count}/${s.max_count}명` : '오프라인';
-    const names = (s.sample || []).join('\n');
-    return `
-      <div class="server-card ${isOnline ? 'online' : 'offline'}">
-        <span class="server-dot ${isOnline ? 'online' : 'offline'}"></span>
-        <span class="server-card-name">${s.name || s.ip}</span>
-        <span class="server-players ${isOnline && s.online_count > 0 ? 'has-players' : ''}"
-              data-players="${names}">${playerStr}</span>
-      </div>`;
-  }).join('');
-
-  list.querySelectorAll('.server-players[data-players]').forEach(el => {
-    el.addEventListener('mouseenter', e => {
-      const names = e.currentTarget.dataset.players?.trim();
-      if (!names) return;
-      _tooltip.innerHTML = names.split('\n').filter(n => n).map(n =>
-        `<div class="tooltip-player">${n}</div>`
-      ).join('') || '<div class="tooltip-player" style="color:#666">없음</div>';
-      _tooltip.style.display = 'block';
-      _positionTooltip(e);
-    });
-    el.addEventListener('mousemove', _positionTooltip);
-    el.addEventListener('mouseleave', () => { _tooltip.style.display = 'none'; });
-  });
-}
-
-function _positionTooltip(e) {
-  const tw = _tooltip.offsetWidth, th = _tooltip.offsetHeight;
-  let x = e.clientX + 12, y = e.clientY - th - 8;
-  if (x + tw > window.innerWidth)  x = e.clientX - tw - 8;
-  if (y < 0) y = e.clientY + 16;
-  _tooltip.style.left = x + 'px';
-  _tooltip.style.top  = y + 'px';
-}
-
 // ─── Preset Selector ──────────────────────────────────────────
 
 function initPresetDropdown() {
@@ -437,6 +389,10 @@ async function loadPresets() {
   const presets = await window.launcher.listPresets();
   const settings = await window.launcher.getSettings();
   currentPresetId = settings.selectedPreset || presets[0]?.id;
+
+  // easy 프리셋 목록 구성
+  _easyPresets = new Set(presets.filter(p => p.easy).map(p => p.id));
+  updateEasyButtons();
 
   const selectedName = document.getElementById('preset-selected-name');
   const list = document.getElementById('preset-dropdown-list');
@@ -462,21 +418,187 @@ async function loadPresets() {
       list.querySelectorAll('.preset-option').forEach(o =>
         o.classList.toggle('selected', o.textContent === preset.name)
       );
+      updateEasyButtons();
       // setSettings 호출 제거 — setup:run 내부에서 selectedPreset 저장
-      // (미리 저장하면 이전/새 프리셋 비교가 불가능해짐)
       await runSetup();
-      refreshServerStatus();
     });
     list.appendChild(opt);
   }
 }
 
+function updateEasyButtons() {
+  const isEasy = _easyPresets.has(currentPresetId);
+  document.querySelectorAll('.btn-browse-easy').forEach(btn => {
+    btn.style.display = isEasy ? '' : 'none';
+  });
+}
+
+// ─── Easy (Modrinth) Browser ──────────────────────────────────
+
+let _easyCategory = 'mods';
+let _easySearchTimer = null;
+let _easyExpanded = null; // currently expanded result element
+
+const _easyOverlay = document.getElementById('easy-overlay');
+const _easyBody    = document.getElementById('easy-body');
+const _easySearch  = document.getElementById('easy-search');
+const _easyTitle   = document.getElementById('easy-modal-title');
+
+const CATEGORY_LABELS = { mods: '모드', resourcepacks: '리소스팩', shaderpacks: '셰이더' };
+
+document.querySelectorAll('.btn-browse-easy').forEach(btn => {
+  btn.addEventListener('click', () => openEasyBrowser(btn.dataset.category));
+});
+
+document.getElementById('easy-close')?.addEventListener('click', closeEasyBrowser);
+
+_easyOverlay?.addEventListener('click', e => {
+  if (e.target === _easyOverlay) closeEasyBrowser();
+});
+
+_easySearch?.addEventListener('input', () => {
+  clearTimeout(_easySearchTimer);
+  _easySearchTimer = setTimeout(doEasySearch, 400);
+});
+
+function openEasyBrowser(category) {
+  _easyCategory = category;
+  _easyTitle.textContent = `${CATEGORY_LABELS[category] || category} 브라우저`;
+  _easySearch.value = '';
+  _easyBody.innerHTML = '<div class="easy-placeholder">검색어를 입력하세요</div>';
+  _easyExpanded = null;
+  _easyOverlay.style.display = 'flex';
+  setTimeout(() => _easySearch.focus(), 50);
+}
+
+function closeEasyBrowser() {
+  _easyOverlay.style.display = 'none';
+}
+
+async function doEasySearch() {
+  const query = _easySearch.value.trim();
+  if (!query) {
+    _easyBody.innerHTML = '<div class="easy-placeholder">검색어를 입력하세요</div>';
+    return;
+  }
+  _easyBody.innerHTML = '<div class="easy-loading"><span class="easy-spinner"></span>검색 중...</div>';
+  _easyExpanded = null;
+
+  const r = await window.launcher.modrinthSearch({
+    query,
+    category: _easyCategory,
+    gameVersion: currentGameVersion,
+    loader: currentModLoader
+  });
+
+  if (!r.success) {
+    _easyBody.innerHTML = `<div class="easy-placeholder">오류: ${r.error}</div>`;
+    return;
+  }
+  if (r.hits.length === 0) {
+    _easyBody.innerHTML = '<div class="easy-placeholder">결과 없음</div>';
+    return;
+  }
+
+  _easyBody.innerHTML = '';
+  for (const hit of r.hits) {
+    _easyBody.appendChild(createEasyResult(hit));
+  }
+}
+
+function createEasyResult(hit) {
+  const dlCount = hit.downloads >= 1000000
+    ? (hit.downloads / 1000000).toFixed(1) + 'M'
+    : hit.downloads >= 1000
+      ? (hit.downloads / 1000).toFixed(0) + 'K'
+      : hit.downloads;
+
+  const item = document.createElement('div');
+  item.className = 'easy-result';
+  item.innerHTML = `
+    <div class="easy-result-row">
+      <img class="easy-result-icon" src="${hit.icon_url || ''}" alt="" onerror="this.style.visibility='hidden'">
+      <div class="easy-result-info">
+        <div class="easy-result-name">${hit.title}</div>
+        <div class="easy-result-meta">${hit.author} · ${dlCount} ↓</div>
+        <div class="easy-result-desc">${hit.description}</div>
+      </div>
+      <span class="easy-result-arrow">▾</span>
+    </div>
+    <div class="easy-versions"></div>
+  `;
+
+  item.addEventListener('click', async () => {
+    if (_easyExpanded && _easyExpanded !== item) {
+      _easyExpanded.classList.remove('expanded');
+    }
+    item.classList.toggle('expanded');
+    _easyExpanded = item.classList.contains('expanded') ? item : null;
+
+    if (item.classList.contains('expanded')) {
+      await loadEasyVersions(item, hit.project_id);
+    }
+  });
+
+  return item;
+}
+
+async function loadEasyVersions(resultEl, projectId) {
+  const versionsEl = resultEl.querySelector('.easy-versions');
+  if (versionsEl.dataset.loaded) return;
+  versionsEl.dataset.loaded = '1';
+  versionsEl.innerHTML = '<div class="easy-ver-loading"><span class="easy-spinner"></span>버전 로딩 중...</div>';
+
+  const r = await window.launcher.modrinthVersions({
+    projectId,
+    gameVersion: currentGameVersion,
+    loader: currentModLoader,
+    category: _easyCategory
+  });
+
+  if (!r.success || r.versions.length === 0) {
+    versionsEl.innerHTML = '<div class="easy-ver-empty">호환 버전 없음</div>';
+    return;
+  }
+
+  versionsEl.innerHTML = '';
+  for (const ver of r.versions.slice(0, 10)) {
+    const primaryFile = ver.files?.find(f => f.primary) || ver.files?.[0];
+    if (!primaryFile) continue;
+
+    const row = document.createElement('div');
+    row.className = 'easy-ver-row';
+    row.innerHTML = `
+      <span class="easy-ver-name">${ver.name || ver.version_number}</span>
+      <button class="easy-ver-install" data-url="${primaryFile.url}" data-filename="${primaryFile.filename}">설치</button>
+    `;
+    row.querySelector('.easy-ver-install').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.textContent = '설치 중...';
+      const res = await window.launcher.modrinthDownload({
+        url: btn.dataset.url,
+        filename: btn.dataset.filename,
+        category: _easyCategory
+      });
+      if (res.success) {
+        btn.textContent = '완료 ✓';
+        showToast(`${btn.dataset.filename} 설치됨`, 'success');
+        loadFilePage(_easyCategory);
+      } else {
+        btn.disabled = false;
+        btn.textContent = '설치';
+        showToast('설치 실패: ' + res.error, 'error');
+      }
+    });
+    versionsEl.appendChild(row);
+  }
+}
+
 // ─── Navigation ───────────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    showPage(btn.dataset.view);
-    if (btn.dataset.view === 'home') refreshServerStatus();
-  });
+  btn.addEventListener('click', () => showPage(btn.dataset.view));
 });
 
 // ─── Settings ─────────────────────────────────────────────────
@@ -539,8 +661,6 @@ async function init() {
   if (auth.loggedIn) {
     setProfile(auth.name, auth.uuid);
     await runSetup();
-    refreshServerStatus();
-    setInterval(refreshServerStatus, 30000);
   }
 }
 
