@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Zzapcho.Launcher</AssemblyName>
+    <RootNamespace>Zzapcho.Launcher.App</RootNamespace>
+    <StartupObject>Zzapcho.Launcher.App.App</StartupObject>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zzapcho.Launcher.Core\Zzapcho.Launcher.Core.csproj" />
+    <ProjectReference Include="..\Zzapcho.Launcher.Infrastructure\Zzapcho.Launcher.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="0.0.1298" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\manifest\launcher-manifest.sample.json" Link="manifest\launcher-manifest.sample.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
