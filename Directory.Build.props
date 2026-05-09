@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <Company>Zzapcho</Company>
+    <Authors>Zzapcho</Authors>
+    <Product>Zzapcho Raid Launcher</Product>
+    <Version>1.0.0-beta.1</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <RepositoryUrl>https://github.com/zzapcho/zzapcho-launcher</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/zzapcho/zzapcho-launcher</PackageProjectUrl>
+    <Copyright>Copyright (c) 2026 Zzapcho</Copyright>
+    <NeutralLanguage>ko-KR</NeutralLanguage>
+    <SatelliteResourceLanguages>ko;en</SatelliteResourceLanguages>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>

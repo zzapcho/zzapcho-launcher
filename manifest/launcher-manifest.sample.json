@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "profileId": "zzapcho-raid-main",
+  "displayName": "잡초 약탈서버",
+  "manifestVersion": "2026.05.09-001",
+  "server": {
+    "host": "online.zzapcho.kr",
+    "port": 25565
+  },
+  "minecraft": {
+    "version": "1.21.4",
+    "loader": "fabric",
+    "loaderVersion": "0.16.9"
+  },
+  "launcher": {
+    "minimumVersion": "1.0.0",
+    "latestVersion": "1.0.0"
+  },
+  "sync": {
+    "deleteUnknownFiles": false,
+    "quarantineUnknownFiles": true,
+    "protectedDirectories": [
+      "mods",
+      "resourcepacks",
+      "shaderpacks",
+      "config"
+    ]
+  },
+  "files": [
+    {
+      "path": "mods/zzapcho-integrity-client.jar",
+      "url": "https://github.com/OWNER/REPO/releases/download/client-2026.05.09/zzapcho-integrity-client.jar",
+      "sha256": "PUT_SHA256_HERE",
+      "size": 123456,
+      "required": true
+    },
+    {
+      "path": "resourcepacks/zzapcho-pack.zip",
+      "url": "https://github.com/OWNER/REPO/releases/download/client-2026.05.09/zzapcho-pack.zip",
+      "sha256": "PUT_SHA256_HERE",
+      "size": 123456,
+      "required": true
+    }
+  ],
+  "signature": "PUT_SIGNATURE_HERE"
+}

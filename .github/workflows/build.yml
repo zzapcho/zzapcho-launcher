@@ -1,0 +1,47 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore ZzapchoRaidLauncher.sln
+
+      - name: Build
+        run: dotnet build ZzapchoRaidLauncher.sln --no-restore -c Release -m:1
+
+      - name: Test
+        run: dotnet run --project src/Zzapcho.Launcher.Tests/Zzapcho.Launcher.Tests.csproj --no-build -c Release
+
+      - name: Publish app artifact
+        run: >
+          dotnet publish src/Zzapcho.Launcher.App/Zzapcho.Launcher.App.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -o artifacts/publish/win-x64
+          /p:PublishSingleFile=false
+          /p:PublishTrimmed=false
+          /p:PublishReadyToRun=false
+
+      - name: Upload publish artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zzapcho.Launcher-win-x64-publish
+          path: artifacts/publish/win-x64

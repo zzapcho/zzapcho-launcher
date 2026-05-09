@@ -1,0 +1,29 @@
+<UserControl x:Class="Zzapcho.Launcher.App.Views.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Text="정보" FontSize="32" FontWeight="SemiBold" />
+        <TextBlock Text="런처의 기본 규칙과 저장 위치입니다."
+                   Style="{StaticResource MutedText}"
+                   Margin="0,8,0,30" />
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="{Binding AppName}" FontSize="24" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding InternalName}" Style="{StaticResource MutedText}" Margin="0,6,0,24" />
+
+                <TextBlock Text="고정 서버" Foreground="{StaticResource GoldBrush}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Server}" FontSize="18" Margin="0,6,0,20" />
+
+                <TextBlock Text="데이터 폴더" Foreground="{StaticResource GoldBrush}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding DataRoot}" Style="{StaticResource MutedText}" Margin="0,6,0,16" />
+
+                <TextBlock Text="인스턴스 폴더" Foreground="{StaticResource GoldBrush}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding InstanceRoot}" Style="{StaticResource MutedText}" Margin="0,6,0,16" />
+
+                <TextBlock Text="로그 폴더" Foreground="{StaticResource GoldBrush}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding LogsRoot}" Style="{StaticResource MutedText}" Margin="0,6,0,0" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

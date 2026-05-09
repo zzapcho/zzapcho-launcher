@@ -1,0 +1,1257 @@
+# 잡초 약탈서버 런처 - Codex 단계별 실행 프롬프트 세트
+
+이 파일은 Codex에게 프로젝트를 한 번에 전부 맡기지 않고, 단계별로 안정적으로 진행시키기 위한 프롬프트 모음이다.
+
+사용 순서:
+
+1. 1번 프롬프트: 프로젝트 뼈대, 고급 WPF UI, 설정, 로그, 서버 상태
+2. 2번 프롬프트: manifest, 파일 검증, 모드/리소스팩 통제
+3. 3번 프롬프트: Microsoft 로그인, Java/Minecraft 준비, 서버 바로 접속
+4. 4번 프롬프트: 런처 인증 permit, Paper 플러그인 설계/스켈레톤
+5. 5번 프롬프트: 자동 업데이트, GitHub Releases, Velopack, 설치파일
+6. 6번 프롬프트: 크래시 리포트, 지원 ZIP, 안전한 업로드 구조
+7. 7번 프롬프트: 최종 폴리싱, 테스트, 릴리즈 준비
+
+원칙:
+
+- 한 번에 하나의 프롬프트만 사용한다.
+- Codex가 이전 단계 결과를 보존하게 한다.
+- 각 단계마다 빌드와 테스트를 실행하게 한다.
+- 실패하면 다음 단계로 넘어가지 말고 먼저 고치게 한다.
+- 설명은 한국어로 받는다.
+
+---
+
+# 1번 프롬프트 - 프로젝트 뼈대 + 고급 UI + 설정/로그 + 서버 상태
+
+You are a senior Windows desktop engineer, WPF/MVVM architect, Minecraft launcher engineer, and product designer.
+
+Build the first production-quality milestone of a Windows-only Minecraft custom launcher named "잡초 약탈서버 런처" with the internal English name "Zzapcho Raid Launcher".
+
+This first milestone must feel like the foundation of a real commercial launcher, not a toy demo.
+
+## Fixed Product Rules
+
+- Target OS: Windows only
+- Server host: online.zzapcho.kr
+- Server port: 25565
+- Users must not be able to add or edit server addresses.
+- UI language must be Korean by default.
+- Do not implement Minecraft launching yet.
+- Do not implement Microsoft login yet.
+- Do not implement auto-update yet.
+- Do not implement Paper plugin yet.
+
+## Tech Stack
+
+- C# .NET 8
+- WPF
+- MVVM
+- System.Text.Json
+- Serilog or Microsoft.Extensions.Logging
+- No Electron
+- No unnecessary heavy UI framework
+
+## Visual Direction
+
+The app should feel:
+
+- Premium
+- Minimal
+- Calm
+- Polished
+- Apple-like
+- Luxury restaurant atmosphere
+
+Use:
+
+- Charcoal
+- Ivory
+- Champagne-gold accent
+- Clean spacing
+- Calm Korean wording
+
+Avoid:
+
+- AI-looking visuals
+- Cyberpunk
+- Neon gaming RGB
+- Cheap template look
+- Clutter
+
+## Repository Structure
+
+Create:
+
+```text
+src/
+  Zzapcho.Launcher.App/
+  Zzapcho.Launcher.Core/
+  Zzapcho.Launcher.Infrastructure/
+  Zzapcho.Launcher.Tests/
+docs/
+  product-brief.md
+  development-roadmap.md
+  security-model.md
+manifest/
+  launcher-manifest.sample.json
+.github/
+  workflows/
+README.md
+```
+
+## App Shell
+
+Implement:
+
+- Main window
+- Left navigation sidebar
+- MVVM structure
+- Clean service interfaces
+- Async-friendly commands
+- No blocking UI thread
+
+Screens:
+
+- 입장
+- 업데이트
+- 로그
+- 설정
+- 정보
+
+## Play Screen
+
+Show:
+
+- Title: 잡초 약탈서버
+- Subtitle: 공식 클라이언트 구성을 확인한 뒤 입장합니다.
+- Fixed server host: online.zzapcho.kr
+- Server card with:
+  - Online/offline/checking state
+  - Current players
+  - Max players
+  - Server version
+  - MOTD
+  - Ping/latency
+  - Player names if available
+- Primary button: 입장하기
+
+Button state examples:
+
+- 로그인 필요
+- 업데이트 필요
+- 파일 확인 중
+- 실행 환경 준비 중
+- 입장하기
+- 실행 중
+- 오류 발생
+
+The button does not need to actually launch Minecraft in this phase.
+
+## Server Status
+
+Implement Minecraft Server List Ping for:
+
+```text
+online.zzapcho.kr:25565
+```
+
+Show:
+
+- Online/offline
+- Player count
+- Max player count
+- MOTD
+- Server version
+- Latency
+- Sample player names if returned
+
+Add future-ready interfaces:
+
+- IServerStatusProvider
+- MinecraftPingStatusProvider
+- ApiServerStatusProvider placeholder
+
+Future API shape:
+
+```json
+{
+  "online": true,
+  "host": "online.zzapcho.kr",
+  "port": 25565,
+  "version": "Paper 1.21.4",
+  "players": {
+    "online": 7,
+    "max": 100,
+    "list": [
+      { "name": "zzapcho", "uuid": "..." }
+    ]
+  },
+  "motd": "잡초 약탈서버",
+  "latencyMs": 42
+}
+```
+
+Requirements:
+
+- Refresh server status automatically every 30 seconds.
+- Add manual refresh button.
+- Do not block the UI thread.
+- If player names are unavailable, show:
+  "접속자 목록은 서버 API 연결 후 표시됩니다."
+
+## Settings
+
+Save settings to:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\settings.json
+```
+
+Default settings:
+
+```json
+{
+  "ramMinMb": 1024,
+  "ramMaxMb": 4096,
+  "autoUpdate": true,
+  "crashReportConsent": false,
+  "lastSelectedAccountId": null,
+  "theme": "dark"
+}
+```
+
+Settings screen:
+
+- RAM min MB
+- RAM max MB
+- Auto update toggle
+- Crash report consent toggle
+- Open data folder button
+- Reset settings button
+
+## Logs
+
+Save logs to:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\logs
+```
+
+Log files:
+
+- launcher.log
+- game.log
+- update.log
+- crash.log
+
+Logs screen:
+
+- Tabs: Launcher / Game / Crash
+- Search
+- Copy selected text
+- Open logs folder
+- Create support ZIP placeholder
+
+## Docs
+
+Write:
+
+- README.md
+- docs/product-brief.md
+- docs/development-roadmap.md
+- docs/security-model.md
+
+Docs must explain:
+
+- Fixed server rule
+- Why the launcher uses an isolated instance folder later
+- Why launcher-only security is not enough
+- Future server-side enforcement plan
+
+## Tests
+
+Add focused tests where practical for:
+
+- Settings persistence
+- Server status model parsing
+- RAM setting validation if implemented
+- Basic service behavior
+
+## Verification
+
+Before finishing:
+
+- Run restore/build.
+- Run tests.
+- Fix compile errors.
+- Report what was verified.
+
+Final response must be in Korean and include:
+
+- Completed work
+- Changed files
+- Build/test result
+- Anything the user still needs to do
+
+---
+
+# 2번 프롬프트 - manifest + 파일 검증 + 모드/리소스팩 통제
+
+Continue the existing "잡초 약탈서버 런처" project.
+
+Now implement Phase 2: manifest system, official file verification, file sync, and unknown file quarantine.
+
+Do not redesign the UI from scratch.
+Keep the premium minimal style already created.
+Do not break existing settings, logs, or server status.
+
+## Goal
+
+The launcher should only allow official files listed in the manifest.
+Users should not be able to add arbitrary mods, resource packs, shader packs, or config files inside the controlled instance.
+
+## Fixed Paths
+
+Instance folder:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\instances\main
+```
+
+Quarantine folder:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\quarantine
+```
+
+Protected directories:
+
+- mods
+- resourcepacks
+- shaderpacks
+- config
+
+## Manifest Format
+
+Create and support:
+
+```json
+{
+  "schemaVersion": 1,
+  "profileId": "zzapcho-raid-main",
+  "displayName": "잡초 약탈서버",
+  "manifestVersion": "2026.05.09-001",
+  "server": {
+    "host": "online.zzapcho.kr",
+    "port": 25565
+  },
+  "minecraft": {
+    "version": "1.21.4",
+    "loader": "fabric",
+    "loaderVersion": "0.16.9"
+  },
+  "launcher": {
+    "minimumVersion": "1.0.0",
+    "latestVersion": "1.0.0"
+  },
+  "sync": {
+    "deleteUnknownFiles": false,
+    "quarantineUnknownFiles": true,
+    "protectedDirectories": [
+      "mods",
+      "resourcepacks",
+      "shaderpacks",
+      "config"
+    ]
+  },
+  "files": [
+    {
+      "path": "mods/zzapcho-integrity-client.jar",
+      "url": "https://github.com/OWNER/REPO/releases/download/client-2026.05.09/zzapcho-integrity-client.jar",
+      "sha256": "PUT_SHA256_HERE",
+      "size": 123456,
+      "required": true
+    },
+    {
+      "path": "resourcepacks/zzapcho-pack.zip",
+      "url": "https://github.com/OWNER/REPO/releases/download/client-2026.05.09/zzapcho-pack.zip",
+      "sha256": "PUT_SHA256_HERE",
+      "size": 123456,
+      "required": true
+    }
+  ],
+  "signature": "PUT_SIGNATURE_HERE"
+}
+```
+
+## Services To Implement
+
+- ManifestDownloader
+- ManifestParser
+- ManifestValidator
+- ManifestSignatureVerifier
+- FileHashVerifier
+- FileDownloader
+- FileSyncService
+- QuarantineService
+- FileSetHashService
+
+Use interfaces where it improves testability.
+
+## Rules
+
+1. Download or load manifest.
+2. Validate schema version.
+3. Validate required fields.
+4. Verify manifest signature with an embedded public key.
+5. Do not embed private keys.
+6. Generate manifest hash.
+7. Verify all files by SHA-256.
+8. Download missing files.
+9. Re-download files with incorrect hash.
+10. Move unknown files in protected directories to quarantine.
+11. Never scan outside the launcher instance folder.
+12. Never scan the entire user PC.
+13. Block Play button if required files are missing or invalid.
+14. Show progress in the Update screen.
+
+## Security Requirements
+
+- Prevent path traversal such as ../../evil.exe.
+- Only allow relative paths inside the instance folder.
+- Use atomic downloads: download to temp file, verify hash, then move into place.
+- Do not execute downloaded files.
+- Log all actions without leaking secrets.
+
+## UI Text
+
+Use calm Korean text:
+
+- 파일 확인 중
+- 필요한 파일 다운로드 중
+- 공식 클라이언트 구성과 다른 파일을 정리했습니다.
+- 클라이언트 준비 완료
+- 클라이언트 복구 필요
+- 다시 검사
+- 복구
+
+Update screen should show:
+
+- Manifest version
+- Manifest hash
+- Minecraft version
+- Loader version
+- File check status
+- Number of files checked
+- Number of files downloaded
+- Number of quarantined files
+- Repair button
+
+## Tests
+
+Add tests for:
+
+- Manifest parsing
+- Invalid manifest rejection
+- Required field validation
+- SHA-256 verification
+- Missing file detection
+- Wrong hash detection
+- Unknown file quarantine
+- FileSetHash generation
+- Protected path traversal prevention
+- Atomic download behavior if practical
+
+## Docs
+
+Update:
+
+- README.md
+- docs/security-model.md
+- docs/development-roadmap.md
+
+Do not implement Microsoft login yet.
+Do not implement Minecraft launch yet.
+Do not implement auto-update yet.
+
+## Verification
+
+Run build and tests.
+Fix failures before final response.
+Explain the result in Korean.
+
+---
+
+# 3번 프롬프트 - Microsoft 로그인 + Java/Minecraft 자동 준비 + 서버 바로 접속
+
+Continue the existing "잡초 약탈서버 런처" project.
+
+Now implement Phase 3: Microsoft login, Java/Minecraft preparation, and launching directly into online.zzapcho.kr.
+
+Do not redesign existing UI.
+Do not break manifest verification, server status, settings, or logs.
+
+## Use
+
+- CMLLib.Core
+- CMLLib.Core.Auth.Microsoft
+
+## Microsoft Login
+
+Implement:
+
+- Login with Microsoft account
+- Logout
+- Cached session
+- Player name display on Play screen
+- UUID display only in Settings or About
+- Friendly Korean error messages
+
+Never:
+
+- Store passwords
+- Log access tokens
+- Log refresh tokens
+- Show sensitive token values in UI
+
+UI text:
+
+- Microsoft 계정으로 로그인
+- 로그아웃
+- 로그인이 필요합니다.
+- 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.
+
+## Java Runtime
+
+Automatically locate or install the required Java runtime using CMLLib-supported mechanisms where possible.
+
+User should not need to install Java manually.
+
+Show progress:
+
+- 실행 환경 준비 중
+- Java 런타임 확인 중
+- Java 런타임 준비 완료
+- 실행 환경을 준비하지 못했습니다.
+
+## Minecraft Preparation
+
+Use manifest values:
+
+- minecraft.version
+- minecraft.loader
+- minecraft.loaderVersion
+
+Prepare:
+
+- Minecraft version
+- Loader if applicable
+- Libraries
+- Assets
+- Natives
+
+Use isolated instance folder:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\instances\main
+```
+
+## Direct Server Launch
+
+Server:
+
+- online.zzapcho.kr
+- 25565
+
+Rules:
+
+- Do not expose arbitrary server input.
+- Launch Minecraft directly into online.zzapcho.kr.
+- Maintain servers.dat so only online.zzapcho.kr is visible.
+- Respect RAM settings:
+  - ramMinMb
+  - ramMaxMb
+
+## Launch Flow
+
+When user clicks 입장하기:
+
+1. Check Microsoft login.
+2. Refresh server status.
+3. Load manifest.
+4. Verify files.
+5. Prepare Java.
+6. Prepare Minecraft.
+7. Create launch options.
+8. Launch Minecraft.
+9. Capture stdout and stderr.
+10. Save game logs to game.log.
+11. Detect process exit code.
+12. If exit code is non-zero, create a local crash summary.
+
+## Button States
+
+Use:
+
+- 로그인 필요
+- 서버 확인 중
+- 파일 확인 중
+- 실행 환경 준비 중
+- 게임 시작 중
+- 실행 중
+- 오류 발생
+
+## Error Messages
+
+Use:
+
+- 로그인이 필요합니다.
+- 클라이언트 파일을 확인하지 못했습니다.
+- 실행 환경을 준비하지 못했습니다.
+- Minecraft 실행에 실패했습니다.
+- 인터넷 연결을 확인한 뒤 다시 시도해주세요.
+
+## Tests
+
+Add tests for:
+
+- Launch option generation
+- RAM setting validation
+- Account state handling
+- Token redaction in logs
+- servers.dat generation or abstraction
+- Launch flow state transitions
+
+## Docs
+
+Update:
+
+- README.md
+- docs/development-roadmap.md
+- docs/security-model.md
+
+Do not implement Paper gate yet.
+Do not implement Velopack auto-update yet.
+Do not implement crash upload yet.
+
+## Verification
+
+Run build and tests.
+If actual Microsoft login cannot be tested in the current environment, explain exactly what was mocked or left for manual testing.
+
+---
+
+# 4번 프롬프트 - 런처 인증 permit + Paper 플러그인 설계/스켈레톤
+
+Continue the existing "잡초 약탈서버 런처" project.
+
+Now implement Phase 4: launch permit protocol, server-side gate design, and optional Paper plugin skeleton.
+
+Important:
+
+A launcher alone cannot fully force launcher-only access.
+The server must enforce launcher usage.
+Implement this as practical anti-bypass, not impossible DRM.
+
+Do not break existing launcher features.
+
+## Client-side Launch Permit
+
+Endpoint:
+
+```text
+POST https://api.zzapcho.kr/launcher/permit
+```
+
+Request body:
+
+```json
+{
+  "playerUuid": "...",
+  "playerName": "...",
+  "launcherVersion": "1.0.0",
+  "manifestVersion": "2026.05.09-001",
+  "manifestHash": "...",
+  "fileSetHash": "...",
+  "timestamp": 1778300000,
+  "clientNonce": "random-value"
+}
+```
+
+Rules:
+
+- Call permit endpoint only after:
+  - Microsoft login is valid
+  - Manifest is valid
+  - File verification succeeded
+  - FileSetHash is generated
+- Permit TTL is 120 seconds.
+- Do not embed secrets in the launcher.
+- Do not embed GitHub tokens.
+- Do not embed backend admin keys.
+- Generate secure random clientNonce.
+- If permit creation fails, block launch.
+
+Failure message:
+
+"입장 허가를 만들지 못했습니다. 잠시 후 다시 시도해주세요."
+
+Implement:
+
+- ILaunchPermitService
+- LaunchPermitRequest
+- LaunchPermitResponse
+- NullLaunchPermitService for explicit local/dev mode
+- HttpLaunchPermitService for production
+
+Settings/config:
+
+- permitApiEnabled
+- permitApiBaseUrl
+
+Default production base URL:
+
+```text
+https://api.zzapcho.kr
+```
+
+## Paper Plugin Skeleton
+
+Plugin name:
+
+```text
+ZzapchoGate
+```
+
+Location:
+
+```text
+server/ZzapchoGate/
+```
+
+Plugin features:
+
+- Validate launch permit by UUID on pre-login or join.
+- Kick users with no permit or expired permit.
+- Kick message: "잡초 약탈서버 런처로 접속해주세요."
+- Register plugin messaging/custom payload channel for integrity handshake.
+- Require handshake within 15 seconds after join.
+- Handshake includes:
+  - manifestHash
+  - fileSetHash
+  - launcherVersion
+  - nonce
+- Kick on handshake failure or timeout.
+- Provide status API integration or documented endpoint for accurate player list.
+
+config.yml:
+
+```yaml
+apiBaseUrl: "https://api.zzapcho.kr"
+permitTtlSeconds: 120
+handshakeTimeoutSeconds: 15
+kickMessage: "잡초 약탈서버 런처로 접속해주세요."
+statusApiEnabled: true
+```
+
+## Docs
+
+Create or update:
+
+- docs/server-gate-protocol.md
+- docs/backend-api.md
+- docs/security-model.md
+- README.md
+
+Clearly document:
+
+- This reduces bypasses but is not unbreakable DRM.
+- Real enforcement happens on the Paper server.
+- Secrets must stay server-side.
+- Client-side checks are not trusted by themselves.
+- The launcher must not claim impossible security.
+
+## Tests
+
+Add tests for:
+
+- Launch permit payload generation
+- Nonce generation
+- Permit failure blocks launch
+- Dev mode bypass only when explicitly configured
+- Log redaction
+
+Do not implement auto-update yet.
+Do not implement crash upload yet.
+
+## Verification
+
+Run build and tests.
+If Paper plugin cannot be fully integration-tested locally, still compile what can be compiled and document manual server test steps.
+
+---
+
+# 5번 프롬프트 - 자동 업데이트 + GitHub Releases + Velopack + 설치파일
+
+Continue the existing "잡초 약탈서버 런처" project.
+
+Now implement Phase 5: production-style installer and auto-update using Velopack and GitHub Releases.
+
+Do not break existing launcher features.
+
+## Goal
+
+The launcher should feel like a real distributed Windows app.
+It should be installable, updateable, and releaseable through GitHub Releases.
+
+## Use
+
+- Velopack
+- GitHub Releases
+- GitHub Actions
+
+## Update Service
+
+Create:
+
+- IUpdateService
+- VelopackUpdateService
+- NullUpdateService for local/dev mode
+
+On app startup:
+
+- Check for updates in background.
+- Do not block the UI.
+- If update is available, show a calm notification.
+- Allow user to apply update by restarting.
+- If update is mandatory, disable Play button.
+
+## Mandatory Update
+
+Use manifest launcher fields:
+
+```json
+{
+  "minimumVersion": "1.0.0",
+  "latestVersion": "1.0.0"
+}
+```
+
+Rule:
+
+If current launcher version is lower than minimumVersion:
+
+- Disable Play button.
+- Show: "런처 업데이트가 필요합니다."
+- Allow update action.
+
+## Update UI
+
+Update screen should show:
+
+- Current launcher version
+- Latest launcher version
+- Update status
+- Download progress
+- Restart to update button
+
+Korean states:
+
+- 최신 버전입니다
+- 업데이트 확인 중
+- 새 버전 다운로드 중
+- 업데이트 준비 완료
+- 재시작하여 업데이트
+- 런처 업데이트가 필요합니다
+
+## GitHub Actions
+
+Create:
+
+- .github/workflows/build.yml
+- .github/workflows/release.yml
+
+Build workflow should:
+
+- Restore
+- Build
+- Test
+- Publish
+- Package with Velopack
+
+Release workflow should:
+
+- Create release artifacts
+- Upload installer/update packages to GitHub Releases
+
+## Code Signing
+
+Add TODO placeholders for Authenticode code signing.
+
+Rules:
+
+- Do not fake signing.
+- Do not disable Windows security.
+- Do not hide SmartScreen.
+- Document that production releases should use a real code signing certificate.
+
+## Security
+
+- Do not embed GitHub personal access tokens in the app.
+- Do not download and run arbitrary external executables.
+- Only update through the configured Velopack/GitHub release channel.
+- Log update actions.
+
+## Docs
+
+Create or update:
+
+- docs/release-process.md
+- README.md
+
+Include:
+
+- How to build locally
+- How to create a release
+- How to configure GitHub Releases
+- How Velopack is configured
+- Code signing notes
+- SmartScreen notes
+- Why unsigned EXE may show warnings
+
+## Tests
+
+Add tests for:
+
+- Version comparison
+- Mandatory update decision
+- Update status state transitions
+- Update failure handling
+
+Do not implement crash report upload yet.
+
+## Verification
+
+Run build and tests.
+If packaging cannot complete because of missing signing or release credentials, leave safe documented placeholders and explain exactly what remains.
+
+---
+
+# 6번 프롬프트 - 크래시 리포트 + 지원 ZIP + 백엔드 업로드 구조
+
+Continue the existing "잡초 약탈서버 런처" project.
+
+Now implement Phase 6: crash report generation, support ZIP, and safe crash upload architecture.
+
+Do not break existing launcher features.
+
+## Goal
+
+When Minecraft or the launcher fails, the user can create a support package easily.
+Crash reports should be useful for debugging but must not leak sensitive data.
+
+## Crash Summary
+
+When Minecraft exits with a non-zero code, create a crash summary in:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\crashes
+```
+
+Include:
+
+- Launcher version
+- Manifest version
+- Manifest hash
+- FileSetHash
+- Minecraft version
+- Java version if available
+- OS version
+- RAM min/max
+- Server host
+- Exit code
+- Timestamp
+- Last 300 lines of launcher log
+- Last 300 lines of game log
+
+## Support ZIP
+
+Implement:
+
+- Create support ZIP button in Logs screen
+- Include latest launcher.log
+- Include latest game.log
+- Include latest crash summary
+- Include settings with sensitive fields removed
+- Include manifest summary
+- Save ZIP to a sensible default location or user-selected location
+- Show success message
+
+## Log Redaction
+
+Redact:
+
+- Access tokens
+- Refresh tokens
+- Bearer tokens
+- Authorization headers
+- Session IDs
+- E-mail addresses if present
+- Obvious secrets
+
+## Crash Upload Architecture
+
+Do not upload automatically without user consent.
+
+If crash report consent is enabled, allow the user to send report to:
+
+```text
+POST https://api.zzapcho.kr/crash-report
+```
+
+Important:
+
+- Do not upload directly to GitHub from the client.
+- Do not embed GitHub tokens.
+- Backend can create GitHub issues server-side later.
+
+Add:
+
+- ICrashReportService
+- LocalCrashReportService
+- HttpCrashReportService
+
+## UI
+
+Logs screen:
+
+- Create support ZIP
+- Send report
+- Open crash folder
+
+User messages:
+
+- 지원 파일을 만들었습니다.
+- 크래시 리포트를 전송했습니다.
+- 리포트를 전송하지 못했습니다.
+- 민감한 정보는 자동으로 제거됩니다.
+
+## Docs
+
+Create or update:
+
+- docs/privacy.md
+- docs/crash-reporting.md
+- README.md
+
+Explain:
+
+- What is collected
+- What is not collected
+- Reports are not sent without consent
+- Tokens and secrets are redacted
+- GitHub tokens are not stored in the launcher
+
+## Tests
+
+Add tests for:
+
+- Crash summary generation
+- Support ZIP creation
+- Log redaction
+- Crash upload payload generation
+- No-token-in-logs behavior
+
+## Verification
+
+Run build and tests.
+If upload cannot be tested because the backend is not live, verify payload generation and document manual test steps.
+
+---
+
+# 7번 프롬프트 - 최종 폴리싱 + 테스트 + 릴리즈 체크리스트
+
+Continue the existing "잡초 약탈서버 런처" project.
+
+Now implement Phase 7: final product polish, QA, tests, and release readiness.
+
+Do not add unnecessary new features.
+Focus on completeness, stability, UX quality, and production readiness.
+
+## Goals
+
+- The app should feel like a serious commercial launcher.
+- First-time users should understand what to do without reading a manual.
+- Errors should be calm and useful.
+- UI should be polished and consistent.
+- The app should be ready for real beta distribution.
+
+## UI Polish
+
+Review all screens:
+
+- 입장
+- 업데이트
+- 로그
+- 설정
+- 정보
+
+Improve:
+
+- Spacing
+- Typography
+- Button states
+- Disabled states
+- Loading states
+- Empty states
+- Error states
+- Card consistency
+- Korean wording consistency
+
+Keep:
+
+- Premium
+- Minimal
+- Calm
+- Charcoal/ivory/champagne-gold
+- No neon
+- No AI visuals
+- No clutter
+
+## First-run Experience
+
+Add a short first-run flow:
+
+- Welcome
+- Microsoft login
+- Server/client check
+- Ready to play
+
+Do not make it long.
+Do not create an annoying tutorial.
+
+## Error Quality
+
+Every major failure should have:
+
+- User-friendly Korean message
+- Detailed log entry
+- Recovery action when possible
+
+Recovery action examples:
+
+- 다시 시도
+- 클라이언트 복구
+- 로그 폴더 열기
+- 지원 파일 만들기
+
+## QA Checklist
+
+Create:
+
+```text
+docs/qa-checklist.md
+```
+
+Include:
+
+- First install
+- First launch
+- Microsoft login
+- Logout
+- Server offline
+- Server online
+- Player count display
+- Player list display
+- Manifest download failure
+- Manifest signature failure
+- Missing mod file
+- Wrong hash file
+- Unknown mod file
+- Java not installed
+- Minecraft not installed
+- Launch success
+- Launch failure
+- Game crash
+- Update available
+- Mandatory update
+- Support ZIP creation
+- Crash report redaction
+
+## Tests
+
+Make sure tests exist for:
+
+- Manifest parsing
+- Manifest validation
+- SHA-256 verification
+- Unknown file quarantine
+- FileSetHash generation
+- Settings persistence
+- Server ping parsing
+- Launch permit payload generation
+- Version comparison
+- Log redaction
+- Mandatory update decision
+- Support ZIP creation
+
+Add missing tests where practical.
+
+## Security Review
+
+Check:
+
+- No private keys
+- No GitHub tokens
+- No Microsoft tokens in logs
+- No full PC scanning
+- No arbitrary server input
+- No arbitrary executable execution
+- No admin requirement unless necessary
+- No fake security bypass
+- No attempt to disable Defender or SmartScreen
+
+Create:
+
+```text
+docs/security-review.md
+```
+
+## Release Readiness
+
+Update:
+
+- README.md
+- docs/release-process.md
+- docs/privacy.md
+- docs/security-model.md
+- docs/development-roadmap.md
+
+Add final release checklist:
+
+- Version updated
+- Manifest updated
+- Hashes updated
+- Installer created
+- Release notes written
+- Code signing completed or marked as unsigned beta
+- Test install completed
+- Server gate plugin compatible
+
+## Final Quality Bar
+
+- Do not leave broken TODOs in user-facing paths.
+- Any remaining TODO must be in docs or clearly marked for infrastructure-only work.
+- Run build and tests.
+- Fix failures where possible.
+- If something cannot be verified locally, explain why and give exact manual test steps.
+
+Final response must be Korean and include:
+
+- What changed
+- What was tested
+- What is ready
+- What still needs real credentials, backend, signing certificate, or server access
+
+The final result should be a polished beta-ready launcher for "잡초 약탈서버".

@@ -1,0 +1,892 @@
+# 잡초 약탈서버 런처 - Codex 최종 통합 프롬프트
+
+이 프롬프트는 Codex에게 전체 프로젝트를 한 번에 맡길 때 사용하는 마스터 지시문이다.
+목표는 "대충 돌아가는 데모"가 아니라, 실제 베타 배포를 목표로 한 Windows 전용 Minecraft 커스텀 런처를 만드는 것이다.
+
+아래 내용을 그대로 Codex에 전달한다.
+
+---
+
+You are a senior Windows desktop engineer, Minecraft launcher engineer, WPF/MVVM architect, security-minded client engineer, release engineer, and product designer.
+
+Build a production-quality Windows-only custom Minecraft launcher named "잡초 약탈서버 런처" with the internal English name "Zzapcho Raid Launcher".
+
+This is not a toy demo. Build it as a serious commercial-quality beta product that can be tested by real users.
+
+## Product Goal
+
+Create a dedicated launcher for exactly one Minecraft server:
+
+- Server host: online.zzapcho.kr
+- Server port: 25565
+- Server type: Paper-based Minecraft server
+- UI language: Korean by default
+- Target OS: Windows only
+
+The launcher must:
+
+- Launch Minecraft directly into online.zzapcho.kr.
+- Never expose arbitrary server address input.
+- Never allow users to add or edit server addresses inside the launcher.
+- Use an isolated Minecraft instance folder controlled by the launcher.
+- Verify official client files before launch.
+- Quarantine unauthorized files from protected folders.
+- Authenticate users with a Microsoft Minecraft account.
+- Prepare Java and Minecraft automatically where possible.
+- Include a practical server-side anti-bypass design using a Paper plugin and short-lived launch permits.
+
+## Security Reality
+
+Do not claim impossible security.
+
+A launcher alone cannot fully prevent bypasses. Real enforcement must happen on the server side.
+The launcher should reduce casual bypasses, unauthorized mods, unauthorized resource packs, and hacked clients, but the Paper server plugin and backend must enforce entry.
+
+The final design must include:
+
+1. Windows launcher
+2. Dedicated isolated Minecraft instance folder
+3. Manifest-based official file sync
+4. SHA-256 file verification
+5. Unknown file quarantine for mods, resourcepacks, shaderpacks, and config
+6. Microsoft account authentication
+7. Short-lived launch permit protocol
+8. Paper server-side gate plugin specification
+9. Optional Paper plugin skeleton named ZzapchoGate
+10. No client-side secrets
+
+## Technology Stack
+
+Use:
+
+- C# .NET 8
+- WPF
+- MVVM
+- CMLLib.Core
+- CMLLib.Core.Auth.Microsoft
+- Velopack for installer and auto-update
+- GitHub Releases for update distribution
+- System.Text.Json
+- Serilog or Microsoft.Extensions.Logging
+- xUnit or NUnit for tests
+
+Do not use:
+
+- Electron
+- A heavy UI framework unless absolutely necessary
+- Admin-only installation unless unavoidable
+- Client-side private keys
+- GitHub personal access tokens embedded in the app
+- Microsoft access tokens or refresh tokens in logs
+- Any behavior that tries to disable Defender, SmartScreen, or Windows security warnings
+
+## Product Style
+
+The app should feel:
+
+- Premium
+- Minimal
+- Calm
+- Polished
+- Clear
+- Quietly expensive
+- Similar to a luxury restaurant or Apple-like utility app
+
+Visual direction:
+
+- Charcoal
+- Ivory
+- Champagne-gold accent
+- Clean spacing
+- Consistent typography
+- Calm Korean wording
+
+Avoid:
+
+- AI-looking visuals
+- Cyberpunk style
+- Neon RGB gaming style
+- Cheap template UI
+- Clutter
+- Aggressive security wording
+
+Example tone:
+
+- Good: "공식 클라이언트 구성과 다른 파일을 정리했습니다."
+- Bad: "불법 파일 발견! 접속 차단!"
+
+## Fixed Paths
+
+Use these folders:
+
+- Install folder: %LocalAppData%\Programs\ZzapchoRaidLauncher
+- Data root: %LocalAppData%\ZzapchoRaidLauncher
+- Instance folder: %LocalAppData%\ZzapchoRaidLauncher\instances\main
+- Logs: %LocalAppData%\ZzapchoRaidLauncher\logs
+- Crashes: %LocalAppData%\ZzapchoRaidLauncher\crashes
+- Quarantine: %LocalAppData%\ZzapchoRaidLauncher\quarantine
+
+The launcher must never scan the entire PC.
+It must only inspect paths inside the launcher data root and instance folder.
+
+## Repository Structure
+
+Create and maintain this repository structure:
+
+```text
+src/
+  Zzapcho.Launcher.App/
+  Zzapcho.Launcher.Core/
+  Zzapcho.Launcher.Infrastructure/
+  Zzapcho.Launcher.Tests/
+server/
+  ZzapchoGate/
+docs/
+  product-brief.md
+  development-roadmap.md
+  security-model.md
+  server-gate-protocol.md
+  backend-api.md
+  release-process.md
+  privacy.md
+  crash-reporting.md
+  qa-checklist.md
+  security-review.md
+manifest/
+  launcher-manifest.sample.json
+.github/
+  workflows/
+    build.yml
+    release.yml
+README.md
+```
+
+## Development Rule
+
+Do not randomly implement features.
+Follow the phases in order.
+
+At each phase:
+
+1. Inspect the existing code first.
+2. Preserve existing architecture and UI direction.
+3. Implement only the requested phase and required supporting abstractions.
+4. Add or update tests for the new behavior.
+5. Update relevant docs.
+6. Run build and tests.
+7. Fix errors before reporting completion.
+8. Explain the result in simple Korean.
+
+If a dependency, network access, account credential, code signing certificate, backend endpoint, or production secret is needed, do not fake it. Add a clean abstraction, a safe placeholder, and clear documentation.
+
+## Phase 0 - Project Foundation
+
+Create the base solution and documentation.
+
+Implement:
+
+- .NET solution
+- WPF app project
+- Core project
+- Infrastructure project
+- Test project
+- README
+- Product brief
+- Development roadmap
+- Security model
+- Sample manifest folder
+
+Define:
+
+- App name: 잡초 약탈서버 런처
+- Internal name: Zzapcho Raid Launcher
+- Fixed server host: online.zzapcho.kr
+- Fixed server port: 25565
+- Folder constants
+- No arbitrary server input rule
+- No full PC scan rule
+- No client-side secrets rule
+
+## Phase 1 - WPF App Shell
+
+Create a polished WPF/MVVM shell.
+
+Screens:
+
+- 입장
+- 업데이트
+- 로그
+- 설정
+- 정보
+
+Requirements:
+
+- Main window
+- Left navigation sidebar
+- MVVM structure
+- ViewModels for each screen
+- Clean service interfaces
+- Async-friendly commands
+- No UI thread blocking
+- Premium charcoal/ivory/champagne-gold theme
+
+Play screen must show:
+
+- Title: 잡초 약탈서버
+- Subtitle: 공식 클라이언트 구성을 확인한 뒤 입장합니다.
+- Fixed host: online.zzapcho.kr
+- Server state
+- Current players
+- Max players
+- Player list if available
+- Server version
+- MOTD
+- Ping/latency
+- Primary button with state-aware text
+
+Button states:
+
+- 로그인 필요
+- 업데이트 필요
+- 파일 확인 중
+- 실행 환경 준비 중
+- 입장하기
+- 실행 중
+- 오류 발생
+
+Do not implement Minecraft launch yet.
+Do not implement Microsoft login yet.
+Do not implement auto-update yet.
+Do not implement Paper plugin yet.
+
+## Phase 2 - Settings And Logs
+
+Implement settings persistence.
+
+Settings path:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\settings.json
+```
+
+Default settings:
+
+```json
+{
+  "ramMinMb": 1024,
+  "ramMaxMb": 4096,
+  "autoUpdate": true,
+  "crashReportConsent": false,
+  "lastSelectedAccountId": null,
+  "theme": "dark",
+  "permitApiEnabled": true,
+  "permitApiBaseUrl": "https://api.zzapcho.kr"
+}
+```
+
+Settings screen:
+
+- RAM min MB
+- RAM max MB
+- Auto update toggle
+- Crash report consent toggle
+- Open data folder button
+- Reset settings button
+
+Implement structured logging.
+
+Log folder:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\logs
+```
+
+Log files:
+
+- launcher.log
+- game.log
+- update.log
+- crash.log
+
+Logs screen:
+
+- Launcher logs
+- Game logs
+- Crash logs
+- Search
+- Copy selected log text
+- Open logs folder
+- Create support ZIP placeholder
+
+## Phase 3 - Server Status
+
+Implement server status display on the Play screen.
+
+The launcher must show:
+
+- Online, offline, or checking state
+- Host: online.zzapcho.kr
+- Current player count
+- Max player count
+- Player names if available
+- Server version
+- MOTD
+- Ping/latency
+
+Implement two layers:
+
+1. Basic Minecraft Server List Ping provider
+   - Used for MVP
+   - Shows online status, player count, max players, version, MOTD, latency
+   - Shows sample player names if the server returns them
+
+2. Paper plugin/API status provider
+   - Placeholder or interface in early phases
+   - Used later for accurate player list
+   - Must be swappable through an interface
+
+Required interface examples:
+
+- IServerStatusProvider
+- MinecraftPingStatusProvider
+- ApiServerStatusProvider
+
+Expected future API JSON:
+
+```json
+{
+  "online": true,
+  "host": "online.zzapcho.kr",
+  "port": 25565,
+  "version": "Paper 1.21.4",
+  "players": {
+    "online": 7,
+    "max": 100,
+    "list": [
+      { "name": "zzapcho", "uuid": "..." }
+    ]
+  },
+  "motd": "잡초 약탈서버",
+  "latencyMs": 42
+}
+```
+
+UI requirements:
+
+- Put server status in a premium card.
+- Show "온라인", "오프라인", or "점검 중".
+- Refresh automatically every 30 seconds.
+- Add manual refresh button.
+- Never block the UI thread.
+- If player names are unavailable from ping, show:
+  "접속자 목록은 서버 API 연결 후 표시됩니다."
+
+## Phase 4 - Manifest System
+
+Create a manifest system.
+
+The manifest is the official source of truth for allowed files.
+
+Sample manifest:
+
+```json
+{
+  "schemaVersion": 1,
+  "profileId": "zzapcho-raid-main",
+  "displayName": "잡초 약탈서버",
+  "manifestVersion": "2026.05.09-001",
+  "server": {
+    "host": "online.zzapcho.kr",
+    "port": 25565
+  },
+  "minecraft": {
+    "version": "1.21.4",
+    "loader": "fabric",
+    "loaderVersion": "0.16.9"
+  },
+  "launcher": {
+    "minimumVersion": "1.0.0",
+    "latestVersion": "1.0.0"
+  },
+  "sync": {
+    "deleteUnknownFiles": false,
+    "quarantineUnknownFiles": true,
+    "protectedDirectories": [
+      "mods",
+      "resourcepacks",
+      "shaderpacks",
+      "config"
+    ]
+  },
+  "files": [
+    {
+      "path": "mods/zzapcho-integrity-client.jar",
+      "url": "https://github.com/OWNER/REPO/releases/download/client-2026.05.09/zzapcho-integrity-client.jar",
+      "sha256": "PUT_SHA256_HERE",
+      "size": 123456,
+      "required": true
+    },
+    {
+      "path": "resourcepacks/zzapcho-pack.zip",
+      "url": "https://github.com/OWNER/REPO/releases/download/client-2026.05.09/zzapcho-pack.zip",
+      "sha256": "PUT_SHA256_HERE",
+      "size": 123456,
+      "required": true
+    }
+  ],
+  "signature": "PUT_SIGNATURE_HERE"
+}
+```
+
+Implement:
+
+- ManifestDownloader
+- ManifestParser
+- ManifestValidator
+- ManifestSignatureVerifier
+- FileHashVerifier
+- FileDownloader
+- FileSyncService
+- QuarantineService
+- FileSetHashService
+- Manifest hash generation
+- Friendly error handling
+
+Security requirements:
+
+- Support signature verification with an embedded public key.
+- Do not embed private keys.
+- Prevent path traversal such as ../../evil.exe.
+- Only allow relative file paths inside the instance folder.
+- Use atomic downloads: temp file, verify hash, then move into place.
+- Log actions without leaking secrets.
+
+## Phase 5 - File Sync And Client Control
+
+Implement official file sync.
+
+Protected directories:
+
+- mods
+- resourcepacks
+- shaderpacks
+- config
+
+Rules:
+
+- Download missing files.
+- Re-download files with wrong SHA-256.
+- Quarantine unknown files from protected directories.
+- Do not scan outside the launcher instance folder.
+- Do not scan the user's entire PC.
+- Unknown files go to %LocalAppData%\ZzapchoRaidLauncher\quarantine.
+- If required files are missing or invalid, block the Play button.
+
+User-facing progress text:
+
+- 파일 확인 중
+- 필요한 파일 다운로드 중
+- 공식 클라이언트 구성과 다른 파일을 정리했습니다.
+- 클라이언트 준비 완료
+- 클라이언트 복구 필요
+- 다시 검사
+- 복구
+
+Update screen should show:
+
+- Manifest version
+- Manifest hash
+- Minecraft version
+- Loader version
+- File check status
+- Number of files checked
+- Number of files downloaded
+- Number of quarantined files
+- Repair button
+
+## Phase 6 - Microsoft Login
+
+Implement Microsoft login using CMLLib.Core.Auth.Microsoft.
+
+Requirements:
+
+- Login with Microsoft account
+- Logout
+- Cached session
+- Show Minecraft player name on Play screen
+- Show UUID only in Settings or About
+- Never store passwords
+- Never log access tokens
+- Never log refresh tokens
+- Handle errors with calm Korean messages
+
+User-facing text:
+
+- Microsoft 계정으로 로그인
+- 로그아웃
+- 로그인이 필요합니다.
+- 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.
+
+## Phase 7 - Java And Minecraft Preparation
+
+Using CMLLib.Core:
+
+- Install or locate required Java runtime.
+- Install Minecraft version from manifest.
+- Install required loader if possible.
+- Prepare libraries, assets, and natives.
+- Use isolated instance folder.
+- Show progress in the UI.
+- User should not need to install Java manually.
+
+Progress text:
+
+- 실행 환경 준비 중
+- Java 런타임 확인 중
+- Java 런타임 준비 완료
+- 게임 파일 확인 중
+- 라이브러리 다운로드 중
+- 실행 환경을 준비하지 못했습니다.
+- 인터넷 연결을 확인한 뒤 다시 시도해주세요.
+
+## Phase 8 - Launch Minecraft Directly Into Server
+
+Launch Minecraft with the authenticated Microsoft session.
+
+Rules:
+
+- Connect directly to online.zzapcho.kr:25565.
+- Do not expose arbitrary server address input.
+- Maintain servers.dat so only online.zzapcho.kr is visible.
+- Respect RAM min and max settings.
+- Capture stdout and stderr.
+- Save game logs to game.log.
+- Detect non-zero exit code.
+- Create crash summary on failure.
+
+Launch flow:
+
+1. Check Microsoft login.
+2. Refresh server status.
+3. Load manifest.
+4. Verify files.
+5. Prepare Java.
+6. Prepare Minecraft.
+7. Create launch options.
+8. Request launch permit if enabled.
+9. Launch Minecraft.
+10. Capture logs.
+11. Detect exit code.
+12. Create crash summary if needed.
+
+## Phase 9 - Paper Server Gate Plugin
+
+Create server-side documentation and an optional skeleton plugin.
+
+Plugin:
+
+- Name: ZzapchoGate
+- Location: server/ZzapchoGate/
+
+Features:
+
+- Check launch permit on player pre-login or join.
+- Kick users who did not use the launcher.
+- Kick message: "잡초 약탈서버 런처로 접속해주세요."
+- Provide accurate server status API or backend integration.
+- Provide player list for launcher.
+- Register integrity handshake channel.
+- Require handshake within 15 seconds after join.
+
+config.yml:
+
+```yaml
+apiBaseUrl: "https://api.zzapcho.kr"
+permitTtlSeconds: 120
+handshakeTimeoutSeconds: 15
+kickMessage: "잡초 약탈서버 런처로 접속해주세요."
+statusApiEnabled: true
+```
+
+## Phase 10 - Launch Permit Protocol
+
+Implement the client-side launch permit service and document the backend.
+
+Endpoint:
+
+```text
+POST https://api.zzapcho.kr/launcher/permit
+```
+
+Request body:
+
+```json
+{
+  "playerUuid": "...",
+  "playerName": "...",
+  "launcherVersion": "1.0.0",
+  "manifestVersion": "2026.05.09-001",
+  "manifestHash": "...",
+  "fileSetHash": "...",
+  "timestamp": 1778300000,
+  "clientNonce": "random-value"
+}
+```
+
+Rules:
+
+- Call permit endpoint only after login, manifest validation, file verification, and fileSetHash generation.
+- Permit TTL: 120 seconds.
+- Generate a secure random nonce.
+- No secrets in the launcher.
+- Backend stores temporary UUID permit.
+- Paper plugin validates permit.
+- Client mod or plugin messaging handshake validates manifest hash and nonce.
+- Document that this is practical anti-bypass, not impossible DRM.
+
+Implement:
+
+- ILaunchPermitService
+- LaunchPermitRequest
+- LaunchPermitResponse
+- NullLaunchPermitService for explicit local/dev mode
+- HttpLaunchPermitService for production
+
+Failure message:
+
+"입장 허가를 만들지 못했습니다. 잠시 후 다시 시도해주세요."
+
+## Phase 11 - Auto-update
+
+Implement Velopack update service abstraction.
+
+Implement:
+
+- IUpdateService
+- VelopackUpdateService
+- NullUpdateService for local/dev mode
+- Background update check on startup
+- Update screen status
+- Mandatory update handling
+
+Mandatory update rule:
+
+If current launcher version is lower than manifest.launcher.minimumVersion:
+
+- Disable Play button.
+- Show: "런처 업데이트가 필요합니다."
+- Allow update action.
+
+Update screen states:
+
+- 최신 버전입니다
+- 업데이트 확인 중
+- 새 버전 다운로드 중
+- 업데이트 준비 완료
+- 재시작하여 업데이트
+- 런처 업데이트가 필요합니다
+
+GitHub Actions:
+
+- .github/workflows/build.yml
+- .github/workflows/release.yml
+
+Security:
+
+- Do not embed GitHub personal tokens in the app.
+- Do not download and run arbitrary external executables.
+- Only update through the configured Velopack/GitHub release channel.
+- Add code signing TODO placeholders.
+- Do not fake signing.
+
+## Phase 12 - Crash Report And Support ZIP
+
+Implement crash summary generation and support ZIP creation.
+
+Crash summaries go to:
+
+```text
+%LocalAppData%\ZzapchoRaidLauncher\crashes
+```
+
+Include:
+
+- Launcher version
+- Manifest version
+- Manifest hash
+- FileSetHash
+- Minecraft version
+- Java version if available
+- OS version
+- RAM min and max
+- Server host
+- Exit code
+- Timestamp
+- Last 300 launcher log lines
+- Last 300 game log lines
+
+Support ZIP includes:
+
+- Latest launcher.log
+- Latest game.log
+- Latest crash summary
+- Settings with sensitive fields removed
+- Manifest summary
+
+Redact:
+
+- Access tokens
+- Refresh tokens
+- Bearer tokens
+- Authorization headers
+- Session IDs
+- E-mail addresses if present
+- Obvious secrets
+
+Crash upload architecture:
+
+- Do not upload automatically without consent.
+- Do not upload directly to GitHub from the client.
+- Do not embed GitHub tokens.
+- If upload is implemented, send to:
+  POST https://api.zzapcho.kr/crash-report
+- Backend may later create GitHub issues server-side.
+
+User-facing messages:
+
+- 지원 파일을 만들었습니다.
+- 크래시 리포트를 전송했습니다.
+- 리포트를 전송하지 못했습니다.
+- 민감한 정보는 자동으로 제거됩니다.
+
+## Phase 13 - Installer And Release
+
+Package with Velopack.
+
+Implement:
+
+- Setup.exe generation
+- GitHub Releases distribution
+- Build workflow
+- Release workflow
+- Release process documentation
+- Code signing placeholders
+
+Do not:
+
+- Disable Windows security warnings
+- Hide SmartScreen behavior
+- Pretend the app is signed when it is not
+
+Docs must explain:
+
+- How to build locally
+- How to create a release
+- How to configure GitHub Releases
+- How Velopack is configured
+- Why unsigned EXE may show warnings
+- Production releases should use a real Authenticode code signing certificate
+
+## Phase 14 - Tests, QA, And Final Polish
+
+Add or verify tests for:
+
+- Manifest parsing
+- Manifest validation
+- Manifest version validation
+- SHA-256 verification
+- Missing file detection
+- Wrong hash detection
+- Unknown file quarantine
+- Path traversal prevention
+- FileSetHash generation
+- Settings persistence
+- Server ping parsing
+- Launch option generation
+- RAM setting validation
+- Account state handling
+- Launch permit payload generation
+- Nonce generation
+- Version comparison
+- Mandatory update decision
+- Log redaction
+- Crash summary generation
+- Support ZIP creation
+
+Create docs/qa-checklist.md covering:
+
+- First install
+- First launch
+- Microsoft login
+- Logout
+- Server offline
+- Server online
+- Player count display
+- Player list display
+- Manifest download failure
+- Manifest signature failure
+- Missing mod file
+- Wrong hash file
+- Unknown mod file
+- Java not installed
+- Minecraft not installed
+- Launch success
+- Launch failure
+- Game crash
+- Update available
+- Mandatory update
+- Support ZIP creation
+- Crash report redaction
+
+Create docs/security-review.md covering:
+
+- No private keys
+- No GitHub tokens
+- No Microsoft tokens in logs
+- No full PC scanning
+- No arbitrary server input
+- No arbitrary executable execution
+- No admin requirement unless necessary
+- No fake security claims
+- No attempt to disable Defender or SmartScreen
+
+Final release checklist:
+
+- Version updated
+- Manifest updated
+- Hashes updated
+- Installer created
+- Release notes written
+- Code signing completed or marked as unsigned beta
+- Test install completed
+- Server gate plugin compatibility checked
+
+## Quality Bar
+
+The final result must:
+
+- Feel like a serious commercial launcher.
+- Be understandable to a first-time user.
+- Use calm Korean error messages.
+- Log technical details for debugging.
+- Keep user-facing text clean and non-threatening.
+- Avoid unnecessary features.
+- Build MVP first but structure it for production.
+- Use async/await properly.
+- Never block the UI thread.
+- Keep secrets out of the client.
+- Keep security claims honest.
+
+## Required Final Response From Codex
+
+After implementation, report in Korean:
+
+1. What was completed
+2. What files were changed
+3. What was verified
+4. Any build/test failures and why
+5. Anything the user must still do
+
+Explain it simply enough that a non-developer can understand, but include exact commands and file paths when needed.
+
+Do not stop at a plan. Implement, verify, debug, and only then report.

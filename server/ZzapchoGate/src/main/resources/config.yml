@@ -1,0 +1,5 @@
+apiBaseUrl: "https://api.zzapcho.kr"
+permitTtlSeconds: 120
+handshakeTimeoutSeconds: 15
+kickMessage: "잡초 약탈서버 런처로 접속해주세요."
+statusApiEnabled: true

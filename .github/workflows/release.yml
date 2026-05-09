@@ -1,32 +1,80 @@
-name: Build & Release
+name: release
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version, for example 1.0.0-beta.1
+        required: true
+        default: 1.0.0-beta.1
+      prerelease:
+        description: Mark GitHub Release as pre-release
+        required: true
+        default: true
+        type: boolean
   push:
     tags:
-      - 'v*'
-  release:
-    types: [created]
-  workflow_dispatch:
+      - v*
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  package:
     runs-on: windows-latest
 
+    env:
+      PACKAGE_VERSION: ${{ github.event.inputs.version }}
+      PRERELEASE: ${{ github.event.inputs.prerelease }}
+
     steps:
-      - name: 소스 체크아웃
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Node.js 설치
-        uses: actions/setup-node@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          node-version: '20'
+          dotnet-version: 8.0.x
 
-      - name: 의존성 설치
-        run: npm install
+      - name: Resolve package version
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PACKAGE_VERSION)) {
+            $version = $env:GITHUB_REF_NAME.TrimStart('v')
+            "PACKAGE_VERSION=$version" >> $env:GITHUB_ENV
+          }
 
-      - name: 빌드 & GitHub Release 배포
+      - name: Build Velopack package
+        shell: pwsh
+        run: .\scripts\package.ps1 -Version $env:PACKAGE_VERSION
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zzapcho.Launcher-win-x64-release
+          path: artifacts/releases/win-x64
+
+      - name: Publish GitHub Release
+        shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EP_DRAFT: false
-          EP_PRE_RELEASE: false
-        run: npm run build -- --publish always
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { "v$env:PACKAGE_VERSION" }
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            $args = @(
+              'release',
+              'create',
+              $tag,
+              '--title',
+              "Zzapcho Raid Launcher $env:PACKAGE_VERSION",
+              '--notes-file',
+              'RELEASE_NOTES.md'
+            )
+            if ($env:PRERELEASE -eq 'true') {
+              $args += '--prerelease'
+            }
+            gh @args
+          }
+
+          gh release upload $tag artifacts\releases\win-x64\* --clobber
